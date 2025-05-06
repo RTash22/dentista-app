@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export function HomeScreen() {
+export default function HomeScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const userData = route.params?.userData || {};
@@ -21,7 +21,8 @@ export function HomeScreen() {
     { id: 1, name: 'Agenda', icon: 'calendar' },
     { id: 4, name: 'Citas', icon: 'medical' },  
     { id: 3, name: 'Pacientes', icon: 'people' },
-    { id: 2, name: 'Historial', icon: 'time' }    
+    { id: 2, name: 'Historial', icon: 'time' },
+    { id: 5, name: 'Procedimientos', icon: 'medkit' }
   ];
 
   const filteredServices = useMemo(() => {
@@ -46,6 +47,9 @@ export function HomeScreen() {
     }
     if (serviceName === 'Pacientes') {
       navigation.navigate('Patients');
+    }
+    if (serviceName === 'Procedimientos') {
+      navigation.navigate('Procedures');
     }
   };
 

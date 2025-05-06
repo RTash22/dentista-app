@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export function Patients() {
+export default  function Patients() {
   const navigation = useNavigation();
   const [patients, setPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);

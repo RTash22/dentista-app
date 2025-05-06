@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export function PatientDetails() {
+export default function PatientDetails() {
   const navigation = useNavigation();
   const route = useRoute();
   const { patient } = route.params || {};
