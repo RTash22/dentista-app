@@ -17,7 +17,18 @@ import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
+
+// Configurar las notificaciones
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function CitaForm() {
   const navigation = useNavigation();
@@ -251,6 +262,100 @@ export default function CitaForm() {
     }
   };
 
+  // Función para obtener detalles del doctor
+  const obtenerDetalleDoctor = async (doctorId) => {
+    try {
+      const response = await api.get(`/doctores/${doctorId}`);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error al obtener detalles del doctor:', error);
+      return null;
+    }
+  };
+
+  // Función para obtener detalles del paciente
+  const obtenerDetallePaciente = async (pacienteId) => {
+    try {
+      const response = await api.get(`/pacientes/${pacienteId}`);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error al obtener detalles del paciente:', error);
+      return null;
+    }
+  };
+
+  // Función para enviar notificación al doctor
+  const enviarNotificacionDoctor = async (doctorId, citaData) => {
+    try {
+      // Obtener el token de notificaciones del doctor
+      const doctor = await obtenerDetalleDoctor(doctorId);
+      if (!doctor || !doctor.notification_token) {
+        console.log('El doctor no tiene un token de notificaciones registrado');
+        return;
+      }
+      
+      const paciente = await obtenerDetallePaciente(citaData.id_paciente);
+      const nombrePaciente = paciente ? `${paciente.nombre} ${paciente.apellidos || ''}` : 'un paciente';
+      
+      // Formatear fecha y hora para la notificación
+      const fechaFormateada = new Date(citaData.fecha).toLocaleDateString('es-ES');
+      const horaFormateada = citaData.hora;
+      
+      // Enviar notificación a través del backend
+      const notificationData = {
+        token: doctor.notification_token,
+        title: 'Nueva cita programada',
+        body: `Tienes una nueva cita con ${nombrePaciente} el ${fechaFormateada} a las ${horaFormateada}`,
+        data: {
+          citaId: citaData.id,
+          tipo: 'nuevaCita',
+          doctorId: doctorId,
+          pantalla: 'CitaDetails'
+        },
+      };
+      
+      console.log('Enviando notificación al doctor:', notificationData);
+      
+      // Intentar enviar a través del backend
+      let enviado = false;
+      try {
+        const response = await api.post('/enviar-notificacion', notificationData);
+        if (response.success) {
+          console.log('Notificación enviada al doctor correctamente');
+          enviado = true;
+        }
+      } catch (error) {
+        console.error('Error en API de notificaciones:', error);
+      }
+      
+      // Si falla el envío por API, intentar con notificación local (solo funciona cuando la app está abierta)
+      if (!enviado) {
+        try {
+          console.log('Intentando enviar notificación local');
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: notificationData.title,
+              body: notificationData.body,
+              data: notificationData.data,
+            },
+            trigger: null, // mostrar inmediatamente
+          });
+          console.log('Notificación local enviada');
+        } catch (localError) {
+          console.error('Error enviando notificación local:', localError);
+        }
+      }
+    } catch (error) {
+      console.error('Error en enviarNotificacionDoctor:', error);
+    }
+  };
+
   // Enviar formulario
   const handleSubmit = async () => {
     if (!validateForm()) return;
@@ -312,6 +417,14 @@ export default function CitaForm() {
         Alert.alert('Éxito', response.message || message, [
           { text: 'OK', onPress: () => navigation.goBack() }
         ]);
+
+        // Enviar notificación al doctor si es una nueva cita
+        if (!isEditing) {
+          await enviarNotificacionDoctor(formData.id_doctor, {
+            ...dataToSend,
+            id: response.data.id,
+          });
+        }
       } else {
         console.error('Error al guardar cita:', response);
         Alert.alert('Error', response.message || 'No se pudo guardar la cita');

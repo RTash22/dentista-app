@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert } 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
+import { inicializarNotificacionesDoctor } from '../services/notifications';
 
 // Cambiamos de función nombrada a exportación por defecto
 export default function LoginScreen() {
   const [doctors, setDoctors] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function LoginScreen() {
     }
 
     try {
+      setIsLoading(true);
       // Realiza la solicitud de login con el id_doctor
       const response = await axios.post('http://192.168.1.138:8000/api/login', {
         id_doctor: selectedDoctor,
@@ -70,6 +73,17 @@ export default function LoginScreen() {
         
         console.log('Datos de usuario guardados:', userDataToStore);
         
+        // Si es un doctor (no admin), registrar el token de notificaciones
+        if (!userDataToStore.is_admin && userDataToStore.rol === 'doctor') {
+          try {
+            console.log('Registrando token de notificaciones para el doctor:', userDataToStore.doctor_id);
+            await inicializarNotificacionesDoctor(userDataToStore.doctor_id);
+          } catch (notificationError) {
+            console.error('Error al inicializar notificaciones:', notificationError);
+            // No bloqueamos el flujo por errores en las notificaciones
+          }
+        }
+        
         // Navegar según el rol del usuario
         if (userDataToStore.is_admin || userDataToStore.rol === 'admin') {
           navigation.replace('Admin', { userData: userDataToStore });
@@ -93,6 +107,8 @@ export default function LoginScreen() {
       }
       
       Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -126,8 +142,14 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+      <TouchableOpacity 
+        style={[styles.loginButton, isLoading && styles.disabledButton]} 
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        <Text style={styles.loginButtonText}>
+          {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -191,5 +213,8 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  disabledButton: {
+    backgroundColor: '#839eb8',
   },
 });
