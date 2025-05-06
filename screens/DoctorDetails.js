@@ -43,17 +43,19 @@ export default function DoctorDetails() {
     setLoading(true);
     try {
       console.log(`Intentando obtener detalles del doctor con ID: ${doctorId}`);
-      console.log('URL de la petición:', `/doctores/${doctorId}`);
-      
       const response = await api.get(`/doctores/${doctorId}`);
       console.log('Respuesta completa de la API:', JSON.stringify(response, null, 2));
-      
-      // Simulación de respuesta con formato estandarizado para propósitos de depuración
-      console.log('LOG  Respuesta de doctor detalle: {"data": {"id": 1, "nombre": "Dr. Adrian Amaro", "especialidad": "Ortodoncia", "telefono": "555-123-4567", "correo": "adrian@example.com", "status": "activo", "created_at": "2025-04-10T14:30:00.000000Z", "updated_at": "2025-05-01T09:15:22.000000Z"}, "message": "Doctor recuperado exitosamente", "success": true}');
       
       if (response.success && response.data) {
         console.log('Doctor obtenido exitosamente:', JSON.stringify(response.data, null, 2));
         setDoctor(response.data);
+      } else if (response.message === 'Doctor no encontrado') {
+        console.error('El doctor especificado no existe');
+        Alert.alert(
+          'Doctor no encontrado',
+          'No se encontró el doctor solicitado. Es posible que haya sido eliminado.',
+          [{ text: 'Volver', onPress: () => navigation.goBack() }]
+        );
       } else {
         console.error('Error en la respuesta de la API:', response);
         Alert.alert('Error', response.message || 'No se pudieron cargar los detalles del doctor');

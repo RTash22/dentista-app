@@ -126,10 +126,20 @@ export const api = {
       return processApiResponse(response.data);
     } catch (error) {
       console.error(`Error en GET ${endpoint}:`, error);
+      
+      // Manejar específicamente el caso de doctor no encontrado
+      if (error.response?.status === 404 && endpoint.includes('/doctores/')) {
+        return { 
+          success: false, 
+          data: null, 
+          message: 'Doctor no encontrado'
+        };
+      }
+      
       return { 
         success: false, 
         data: null, 
-        message: error.response?.data?.message || error.message || 'Error al obtener datos' 
+        message: error.response?.data?.message || error.message || 'Error al obtener datos'
       };
     }
   },
@@ -181,7 +191,36 @@ export const api = {
 
   // Obtener citas por doctor
   async getCitasByDoctor(doctorId, fecha) {
-    return this.get(`/citas-doctor/${doctorId}${fecha ? `?fecha=${fecha}` : ''}`);
+    if (!doctorId) {
+      console.error('getCitasByDoctor: No se proporcionó el ID del doctor');
+      return { 
+        success: false, 
+        message: 'Se requiere el ID del doctor para obtener las citas', 
+        data: null 
+      };
+    }
+
+    try {
+      const response = await this.get(`/citas-por-doctor/${doctorId}${fecha ? `?fecha=${fecha}` : ''}`);
+      
+      // Si el doctor no existe, manejar específicamente ese caso
+      if (response.message === 'Doctor no encontrado') {
+        return {
+          success: false,
+          message: 'El doctor especificado no existe o fue eliminado',
+          data: null
+        };
+      }
+
+      return response;
+    } catch (error) {
+      console.error(`Error en getCitasByDoctor para doctor ${doctorId}:`, error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Error al obtener las citas del doctor', 
+        data: null 
+      };
+    }
   },
 
   // Obtener citas completadas por doctor

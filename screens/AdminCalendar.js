@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Modal, FlatList } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  Alert
+} from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import api from '../services/api';
 
-export default function CalendarScreen() {
+export default function AdminCalendar() {
   const navigation = useNavigation();
-  const route = useRoute();
-  const userData = route.params?.userData || {};
   
   const [loading, setLoading] = useState(true);
   const [citasByDay, setCitasByDay] = useState({});
@@ -18,93 +24,6 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedDayCitas, setSelectedDayCitas] = useState([]);
-  const [doctorId, setDoctorId] = useState(null);
-  const [doctorData, setDoctorData] = useState(null);
-
-  // Cargar el ID del doctor desde AsyncStorage al iniciar
-  useEffect(() => {
-    const loadDoctorData = async () => {
-      try {
-        const userData = await AsyncStorage.getItem('userData');
-        if (userData) {
-          const user = JSON.parse(userData);
-          console.log('Datos de usuario:', user);
-          
-          // Verificar todas las posibles ubicaciones del ID del doctor
-          let doctorIdentifier = null;
-          
-          // 1. Primero verificar si hay un doctor_id específico
-          if (user.doctor_id) {
-            doctorIdentifier = user.doctor_id;
-          }
-          // 2. Si el usuario es un doctor, usar su propio ID
-          else if (user.id && (user.tipo === 'doctor' || user.rol === 'doctor')) {
-            doctorIdentifier = user.id;
-          }
-          // 3. Si hay datos de doctor anidados, usar ese ID
-          else if (user.doctor && user.doctor.id) {
-            doctorIdentifier = user.doctor.id;
-          }
-          // 4. Como último recurso, usar el ID del usuario
-          else if (user.id) {
-            doctorIdentifier = user.id;
-          }
-
-          if (doctorIdentifier) {
-            console.log('ID del doctor identificado:', doctorIdentifier);
-            setDoctorId(doctorIdentifier);
-            await fetchDoctorInfo(doctorIdentifier);
-          } else {
-            console.error('No se pudo determinar el ID del doctor');
-            Alert.alert(
-              'Error de identificación',
-              'No se pudo identificar al doctor. Por favor, inicia sesión nuevamente.',
-              [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-            );
-          }
-        }
-      } catch (error) {
-        console.error('Error al cargar datos del usuario:', error);
-        Alert.alert('Error', 'No se pudo obtener la información del usuario');
-      }
-    };
-
-    loadDoctorData();
-  }, []);
-
-  // Obtener información del doctor
-  const fetchDoctorInfo = async (id) => {
-    try {
-      const response = await api.get(`/doctores/${id}`);
-      console.log('Información del doctor:', response);
-      
-      if (response.success) {
-        setDoctorData(response.data);
-      } else if (response.message === 'Doctor no encontrado') {
-        console.error('El doctor especificado no existe');
-        Alert.alert(
-          'Doctor no encontrado',
-          'No se pudo obtener la información del doctor. Es posible que haya sido eliminado.',
-          [{ 
-            text: 'Volver', 
-            onPress: () => navigation.navigate('Home')
-          }]
-        );
-      } else {
-        console.error('Error al obtener información del doctor:', response);
-        Alert.alert('Error', response.message || 'No se pudo obtener la información del doctor');
-      }
-    } catch (error) {
-      console.error('Error al obtener información del doctor:', error);
-    }
-  };
-
-  // Cargar citas cuando tengamos el ID del doctor
-  useEffect(() => {
-    if (doctorId) {
-      fetchCitas();
-    }
-  }, [doctorId]);
 
   // Formatea la fecha al formato YYYY-MM-DD para usar con el calendario
   const formatDate = (date) => {
@@ -119,22 +38,12 @@ export default function CalendarScreen() {
     return [year, month, day].join('-');
   };
 
-  // Función para cargar citas del doctor
-  const fetchCitas = async () => {
-    if (!doctorId) {
-      console.error('ID del doctor no disponible');
-      Alert.alert(
-        'Error',
-        'No se pudo identificar al doctor. Por favor, inicie sesión nuevamente.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-      );
-      return;
-    }
-    
+  // Función para cargar todas las citas
+  const fetchAllCitas = async () => {
     setLoading(true);
     try {
-      console.log(`Obteniendo citas para el doctor ID: ${doctorId}`);
-      const response = await api.getCitasByDoctor(doctorId);
+      console.log('Obteniendo todas las citas...');
+      const response = await api.get('/citas');
       console.log('Respuesta de citas:', response);
       
       if (response.success) {
@@ -189,6 +98,10 @@ export default function CalendarScreen() {
     }
   };
 
+  useEffect(() => {
+    fetchAllCitas();
+  }, []);
+
   // Maneja la selección de una fecha en el calendario
   const handleDayPress = (day) => {
     const selectedDate = day.dateString;
@@ -232,13 +145,13 @@ export default function CalendarScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Agenda de Citas</Text>
+          <Text style={styles.headerTitle}>Calendario General</Text>
         </View>
       </LinearGradient>
 
       <View style={styles.calendarContainer}>
         <Text style={styles.calendarTitle}>
-          Calendario de {doctorData?.nombre || 'Doctor'}
+          Todas las Citas
         </Text>
         
         <Text style={styles.indicatorLabel}>Indicadores:</Text>
@@ -328,6 +241,9 @@ export default function CalendarScreen() {
                   }}
                 >
                   <View>
+                    <Text style={styles.doctorName}>
+                      Dr. {item.doctor?.nombre || 'Sin doctor asignado'}
+                    </Text>
                     <Text style={styles.pacienteName}>
                       {item.paciente?.nombre} {item.paciente?.apellidos || 'Sin nombre'}
                     </Text>
@@ -460,15 +376,21 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#21588E',
   },
-  pacienteName: {
+  doctorName: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#21588E',
+    marginBottom: 4,
+  },
+  pacienteName: {
+    fontSize: 15,
+    fontWeight: '500',
     color: '#333',
+    marginBottom: 4,
   },
   citaHora: {
     fontSize: 14,
     color: '#666',
-    marginTop: 5,
   },
   closeButton: {
     backgroundColor: "#21588E",

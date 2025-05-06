@@ -21,6 +21,7 @@ import CitasDocs from './screens/CitasDocs';
 import HistorialMedicoScreen from './screens/HistorialMedicoScreen';
 import HistorialCitasDoctor from './screens/HistorialCitasDoctor';
 import CalendarScreen from './screens/Calendar';  // Importando el componente Calendar
+import AdminCalendar from './screens/AdminCalendar';
 
 const Stack = createStackNavigator();
 
@@ -32,6 +33,7 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Calendar" component={CalendarScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="AdminCalendar" component={AdminCalendar} options={{ headerShown: false }} />
         
         <Stack.Screen name="DoctoresScreen" component={DoctoresScreen} options={{ headerShown: false }} />
         <Stack.Screen name="DoctorDetails" component={DoctorDetails} options={{ headerShown: false }} />

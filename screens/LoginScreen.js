@@ -37,7 +37,7 @@ export default function LoginScreen() {
     }
 
     try {
-      // Realiza la solicitud de login con el id_doctor en lugar del email
+      // Realiza la solicitud de login con el id_doctor
       const response = await axios.post('http://192.168.1.138:8000/api/login', {
         id_doctor: selectedDoctor,
         password: password
@@ -49,25 +49,32 @@ export default function LoginScreen() {
         // Extraer información del usuario y token
         const userData = response.data.data.user;
         const token = response.data.data.token || response.data.token;
-        const isAdmin = userData.is_admin;
-        const userRole = userData.rol;
         
-        // Guardar el token de autenticación
+        // Asegurar que tenemos una estructura consistente de datos
+        const userDataToStore = {
+          id: userData.id,
+          doctor_id: userData.doctor?.id || userData.id,
+          nombre: userData.doctor?.nombre || userData.nombre || userData.usuario,
+          rol: userData.rol || (userData.is_admin ? 'admin' : 'doctor'),
+          is_admin: userData.is_admin || userData.rol === 'admin',
+          usuario: userData.usuario,
+          doctor: userData.doctor || {
+            id: userData.id,
+            nombre: userData.nombre || userData.usuario,
+          }
+        };
+        
+        // Guardar el token y datos del usuario
         await AsyncStorage.setItem('authToken', token);
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
+        await AsyncStorage.setItem('userData', JSON.stringify(userDataToStore));
         
-        console.log('Token guardado:', token);
-        console.log('Tipo de usuario:', {
-          esAdmin: isAdmin,
-          rol: userRole,
-          nombre: userData.doctor?.nombre || userData.usuario
-        });
+        console.log('Datos de usuario guardados:', userDataToStore);
         
         // Navegar según el rol del usuario
-        if (isAdmin === 1 || userRole === 'admin') {
-          navigation.replace('Admin', { userData });
+        if (userDataToStore.is_admin || userDataToStore.rol === 'admin') {
+          navigation.replace('Admin', { userData: userDataToStore });
         } else {
-          navigation.replace('Home', { userData });
+          navigation.replace('Home', { userData: userDataToStore });
         }
       } else {
         Alert.alert('Error', 'Credenciales incorrectas.');

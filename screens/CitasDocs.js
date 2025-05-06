@@ -33,32 +33,34 @@ export default function CitasDocs() {
           const user = JSON.parse(userData);
           console.log('Datos de usuario:', user);
           
-          // Si el usuario tiene un ID de doctor
+          // Verificar todas las posibles ubicaciones del ID del doctor
+          let doctorIdentifier = null;
+          
+          // 1. Primero verificar si hay un doctor_id específico
           if (user.doctor_id) {
-            setDoctorId(user.doctor_id);
-            fetchDoctorInfo(user.doctor_id);
-          } 
-          // Si el usuario es un doctor (tiene su propio ID y es tipo doctor)
-          else if (user.id && (user.tipo === 'doctor' || user.rol === 'doctor')) {
-            setDoctorId(user.id);
-            setDoctorData({
-              id: user.id,
-              nombre: user.nombre || 'Doctor'
-            });
-            // Opcionalmente cargar información completa del doctor
-            fetchDoctorInfo(user.id);
-          } 
-          // En cualquier otro caso, usar el ID del usuario directamente
-          else if (user.id) {
-            console.log('Usando el ID del usuario como ID de doctor:', user.id);
-            setDoctorId(user.id);
-            // Intentar cargar la información del doctor con este ID
-            fetchDoctorInfo(user.id);
+            doctorIdentifier = user.doctor_id;
           }
-          else {
-            // Si no hay ID de doctor o usuario, mostrar un mensaje
+          // 2. Si el usuario es un doctor, usar su propio ID
+          else if (user.id && (user.tipo === 'doctor' || user.rol === 'doctor')) {
+            doctorIdentifier = user.id;
+          }
+          // 3. Si hay datos de doctor anidados, usar ese ID
+          else if (user.doctor && user.doctor.id) {
+            doctorIdentifier = user.doctor.id;
+          }
+          // 4. Como último recurso, usar el ID del usuario
+          else if (user.id) {
+            doctorIdentifier = user.id;
+          }
+
+          if (doctorIdentifier) {
+            console.log('ID del doctor identificado:', doctorIdentifier);
+            setDoctorId(doctorIdentifier);
+            await fetchDoctorInfo(doctorIdentifier);
+          } else {
+            console.error('No se pudo determinar el ID del doctor');
             Alert.alert(
-              'Sin identificación',
+              'Error de identificación',
               'No se pudo identificar al doctor. Por favor, inicia sesión nuevamente.',
               [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
             );
@@ -81,6 +83,19 @@ export default function CitasDocs() {
       
       if (response.success) {
         setDoctorData(response.data);
+      } else if (response.message === 'Doctor no encontrado') {
+        console.error('El doctor especificado no existe');
+        Alert.alert(
+          'Doctor no encontrado',
+          'No se pudo obtener la información del doctor. Es posible que haya sido eliminado.',
+          [{ 
+            text: 'Volver', 
+            onPress: () => navigation.navigate('Home')
+          }]
+        );
+      } else {
+        console.error('Error al obtener información del doctor:', response);
+        Alert.alert('Error', response.message || 'No se pudo obtener la información del doctor');
       }
     } catch (error) {
       console.error('Error al obtener información del doctor:', error);
@@ -98,22 +113,28 @@ export default function CitasDocs() {
 
   // Función para cargar citas del doctor
   const fetchCitas = async () => {
-    if (!doctorId) return;
+    const doctorIdentifier = doctorId;
+    if (!doctorIdentifier) {
+      console.error('ID del doctor no disponible');
+      Alert.alert(
+        'Error',
+        'No se pudo identificar al doctor. Por favor, inicie sesión nuevamente.',
+        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+      );
+      return;
+    }
     
     setLoading(true);
     try {
-      console.log(`Obteniendo citas para el doctor ID: ${doctorId}`);
-      const response = await api.get(`/citas-por-doctor/${doctorId}`);
+      console.log(`Obteniendo citas para el doctor ID: ${doctorIdentifier}`);
+      const response = await api.getCitasByDoctor(doctorIdentifier);
       console.log('Respuesta de citas:', response);
-      
-      // Simulación de respuesta con formato estandarizado para propósitos de depuración
-      console.log('LOG  Respuesta de citas: {"data": [{"created_at": "2025-05-06T09:36:47.000000Z", "descripcion_manual": "Pues es una descripcion vea y pus ajam", "doctor": [Object], "estado": "pendiente", "fecha": "2025-05-17T00:00:00.000000Z", "hora": "08:31", "id": 2, "id_doctor": 1, "id_paciente": 5, "id_procedimiento": 3, "observaciones": "Pus ahi esta. vea nomas", "paciente": [Object], "procedimiento": [Object], "updated_at": "2025-05-06T09:36:47.000000Z"}], "message": "Listado de citas recuperado exitosamente", "success": true}');
       
       if (response.success) {
         setCitas(response.data || []);
       } else {
         console.error('Error al obtener citas:', response);
-        Alert.alert('Error', 'No se pudieron cargar las citas');
+        Alert.alert('Error', response.message || 'No se pudieron cargar las citas');
       }
     } catch (error) {
       console.error('Error detallado al obtener citas:', error);

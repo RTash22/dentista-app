@@ -1,21 +1,73 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import api from '../services/api';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const userData = route.params?.userData || {};
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const upcomingAppointments = [
-    { id: '1', patientName: 'Juan Pérez', date: '27/04/2025', time: '09:00' },
-    { id: '2', patientName: 'María García', date: '27/04/2025', time: '10:30' },
-    { id: '3', patientName: 'Carlos López', date: '28/04/2025', time: '11:00' },
-    { id: '4', patientName: 'Ana Martínez', date: '28/04/2025', time: '12:30' }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [proximasCitas, setProximasCitas] = useState([]);
+
+  // Cargar próximas citas cuando la pantalla obtiene el foco
+  useFocusEffect(
+    React.useCallback(() => {
+      cargarProximasCitas();
+    }, [])
+  );
+
+  const cargarProximasCitas = async () => {
+    try {
+      setLoading(true);
+      const doctorId = userData.doctor?.id || userData.id;
+      
+      if (!doctorId) {
+        console.error('No se pudo identificar el ID del doctor');
+        return;
+      }
+
+      const response = await api.get(`/citas-por-doctor/${doctorId}`);
+      
+      if (response.success) {
+        // Filtrar solo las citas pendientes y ordenarlas por fecha y hora
+        const citasPendientes = response.data
+          .filter(cita => cita.estado === 'pendiente')
+          .sort((a, b) => {
+            const dateA = new Date(a.fecha + 'T' + a.hora);
+            const dateB = new Date(b.fecha + 'T' + b.hora);
+            return dateA - dateB;
+          })
+          .slice(0, 5); // Mostrar solo las próximas 5 citas
+
+        setProximasCitas(citasPendientes);
+      } else {
+        console.error('Error al cargar las citas:', response);
+      }
+    } catch (error) {
+      console.error('Error al cargar las citas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return '';
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatearHora = (hora) => {
+    if (!hora) return '';
+    return hora.substring(0, 5); // Formato HH:MM
+  };
 
   const services = [
     { id: 1, name: 'Agenda', icon: 'calendar' },
@@ -64,6 +116,53 @@ export default function HomeScreen() {
     navigation.replace('Login');
   };
 
+  const renderProximasCitas = () => (
+    <View style={styles.appointmentsContainer}>
+      <Text style={styles.appointmentsTitle}>Próximas Citas</Text>
+      {loading ? (
+        <ActivityIndicator size="large" color="#21588E" />
+      ) : proximasCitas.length > 0 ? (
+        <FlatList
+          data={proximasCitas}
+          keyExtractor={(item) => item.id.toString()}
+          style={styles.appointmentsList}
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          snapToAlignment="start"
+          decelerationRate="fast"
+          snapToInterval={210} // width + marginRight
+          pagingEnabled={false}
+          renderItem={({ item, index }) => (
+            <TouchableOpacity 
+              style={[
+                styles.appointmentCard,
+                { 
+                  borderColor: index % 2 === 0 ? '#21588E' : '#2FA0AD',
+                  backgroundColor: index % 2 === 0 ? '#21588E' : '#2FA0AD'
+                }
+              ]}
+              onPress={() => navigation.navigate('CitaDetails', { citaId: item.id })}
+            >
+              <Text style={[styles.patientName, { color: 'white' }]}>
+                {item.paciente?.nombre} {item.paciente?.apellidos}
+              </Text>
+              <Text style={[styles.appointmentTime, { color: 'white' }]}>
+                {formatearFecha(item.fecha)} - {formatearHora(item.hora)}
+              </Text>
+              <Text style={[styles.procedimientoText, { color: 'white' }]}>
+                {item.procedimiento?.nombre || item.descripcion_manual || 'Sin procedimiento'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      ) : (
+        <View style={styles.emptyAppointments}>
+          <Text style={styles.emptyText}>No hay citas próximas</Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -104,32 +203,7 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      <View style={styles.appointmentsContainer}>
-        <Text style={styles.appointmentsTitle}>Próximas Citas</Text>
-        <FlatList
-          data={upcomingAppointments}
-          keyExtractor={(item) => item.id}
-          style={styles.appointmentsList}
-          horizontal={true}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item, index }) => (
-            <View style={[
-              styles.appointmentCard,
-              { 
-                borderColor: index % 2 === 0 ? '#21588E' : '#2FA0AD',
-                backgroundColor: index % 2 === 0 ? '#21588E' : '#2FA0AD'
-              }
-            ]}>
-              <Text style={[styles.patientName, { color: 'white' }]}>
-                {item.patientName}
-              </Text>
-              <Text style={[styles.appointmentTime, { color: 'white' }]}>
-                {item.date} - {item.time}
-              </Text>
-            </View>
-          )}
-        />
-      </View>
+      {renderProximasCitas()}
       
       <TouchableOpacity 
         style={styles.logoutButton} 
@@ -144,40 +218,29 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#f5f5f5',
   },
   headerGradient: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 200,
+    height: 160,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
   greetingContainer: {
-    position: 'absolute',
-    top: 90,
-    left: 30,
+    paddingTop: 60,
+    paddingHorizontal: 30,
   },
   smallGreeting: {
-    fontSize: 17,  
+    fontSize: 17,
     fontWeight: '400',
-    color: '#333',
     marginBottom: 5,
   },
   greeting: {
-    fontSize: 28,  
-    fontWeight: 'bold', 
-    color: '#333',
+    fontSize: 28,
+    fontWeight: 'bold',
   },
   searchContainer: {
-    position: 'absolute',
-    top: 175,
-    left: 20,
-    right: 20,
+    marginTop: -30,
+    marginHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
@@ -202,19 +265,15 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   sectionTitle: {
-    position: 'absolute',
-    top: 230,
-    left: 20,
     fontSize: 17,
     fontWeight: 'bold',
     color: '#333',
-    marginTop: 20,
+    marginTop: 25,
+    marginLeft: 20,
   },
   gridContainer: {
-    position: 'absolute',
-    top: 290, 
-    left: 20,
-    right: 20,
+    paddingHorizontal: 15,
+    paddingTop: 15,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
@@ -225,8 +284,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 15,
     padding: 15,
-    marginRight: 10,
-    marginBottom: 10,
+    marginHorizontal: '1.65%',
+    marginBottom: 15,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3.5,
@@ -239,37 +298,35 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3,
-    transform: [{ scale: 0.98 }],
   },
   gridItemText: {
     marginTop: 8,
     fontSize: 12,
     color: '#333',
     fontWeight: '500',
+    textAlign: 'center',
   },
   appointmentsContainer: {
-    position: 'absolute',
-    bottom: 90, 
-    left: 20,
-    right: 20,
-    height: 120,
+    marginTop: 10,
+    marginHorizontal: 20,
+    height: 140, // Reducido de 180 a 140
   },
   appointmentsTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 10, // Reducido de 15 a 10
   },
   appointmentsList: {
-    flex: 1,
+    height: 100, // Reducido de 140 a 100
   },
   appointmentCard: {
+    width: 200, // Reducido de 250 a 200
     backgroundColor: 'white',
-    padding: 12,
-    borderRadius: 15,
-    marginRight: 15,
+    padding: 12, // Reducido de 15 a 12
+    borderRadius: 12,
+    marginRight: 10, // Reducido de 15 a 10
     borderWidth: 0,
-    width: 200,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: {
@@ -280,21 +337,38 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   patientName: {
-    fontSize: 14,
+    fontSize: 14, // Reducido de 16 a 14
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 4,
   },
   appointmentTime: {
-    fontSize: 12,
+    fontSize: 12, // Reducido de 14 a 12
     color: '#666',
-    marginTop: 4,
+    marginBottom: 4,
+  },
+  procedimientoText: {
+    fontSize: 12, // Reducido de 14 a 12
+    color: '#666',
+    fontStyle: 'italic',
+  },
+  emptyAppointments: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
   logoutButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
     backgroundColor: '#f44336',
+    marginHorizontal: 20,
+    marginBottom: 20,
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',

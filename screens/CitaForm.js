@@ -215,9 +215,57 @@ export default function CitaForm() {
     return true;
   };
 
+  // Verificar disponibilidad de horario
+  const verificarDisponibilidad = async (fecha, hora, doctorId) => {
+    try {
+      // Obtener las citas del doctor para esa fecha
+      const response = await api.get(`/citas-por-doctor/${doctorId}?fecha=${fecha}`);
+      
+      if (response.success && response.data) {
+        // Verificar si hay alguna cita en el mismo horario
+        const citasDelDia = response.data;
+        const horaFormateada = hora.getHours().toString().padStart(2, '0') + ':' + 
+                             hora.getMinutes().toString().padStart(2, '0');
+        
+        const citaExistente = citasDelDia.find(cita => {
+          // Si estamos editando, ignorar la cita actual
+          if (isEditing && cita.id === route.params.cita.id) return false;
+          
+          // Comparar la hora de la cita
+          return cita.hora === horaFormateada;
+        });
+
+        if (citaExistente) {
+          Alert.alert(
+            'Horario no disponible',
+            'Ya existe una cita programada para esta hora. Por favor seleccione otro horario.'
+          );
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      console.error('Error al verificar disponibilidad:', error);
+      Alert.alert('Error', 'No se pudo verificar la disponibilidad del horario');
+      return false;
+    }
+  };
+
   // Enviar formulario
   const handleSubmit = async () => {
     if (!validateForm()) return;
+
+    // Formatear fecha para la validación
+    const fechaFormateada = formData.fecha.toISOString().split('T')[0];
+
+    // Verificar disponibilidad antes de continuar
+    const horarioDisponible = await verificarDisponibilidad(
+      fechaFormateada,
+      formData.hora,
+      formData.id_doctor
+    );
+
+    if (!horarioDisponible) return;
     
     try {
       setLoading(true);

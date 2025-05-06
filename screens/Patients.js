@@ -41,7 +41,7 @@ export default  function Patients() {
     setLoading(true);
     console.log('Intentando obtener pacientes de la API...');
     
-    axios.get('http://192.168.0.32:8000/api/pacientes')
+    axios.get('http://192.168.1.138:8000/api/pacientes')
       .then(response => {
         console.log('Respuesta recibida:', JSON.stringify(response.data, null, 2));
         
