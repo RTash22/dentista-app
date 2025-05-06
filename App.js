@@ -17,6 +17,7 @@ import AdminScreen from './screens/AdminScreen';
 import ConsultasScreen from './screens/ConsultasScreen';
 import CitaForm from './screens/CitaForm';
 import CitaDetails from './screens/CitaDetails';
+import CitasDocs from './screens/CitasDocs';
 import HistorialMedicoScreen from './screens/HistorialMedicoScreen';
 
 const Stack = createStackNavigator();
@@ -44,6 +45,7 @@ export default function App() {
         <Stack.Screen name="ConsultasScreen" component={ConsultasScreen} options={{ headerShown: false }} />
         <Stack.Screen name="CitaForm" component={CitaForm} options={{ headerShown: false }} />
         <Stack.Screen name="CitaDetails" component={CitaDetails} options={{ headerShown: false }} />
+        <Stack.Screen name="CitasDocs" component={CitasDocs} options={{ headerShown: false }} />
         
         {/* Nueva pantalla de historial médico detallado */}
         <Stack.Screen name="HistorialMedicoScreen" component={HistorialMedicoScreen} options={{ headerShown: false }} />

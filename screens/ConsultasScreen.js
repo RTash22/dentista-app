@@ -37,12 +37,19 @@ export default function ConsultasScreen() {
       
       console.log('Respuesta de citas:', response);
       
+      // Simulación de respuesta con formato estandarizado para propósitos de depuración
+      console.log('LOG  Respuesta de citas: {"data": [{"created_at": "2025-05-06T09:36:47.000000Z", "descripcion_manual": "Pues es una descripcion vea y pus ajam", "doctor": [Object], "estado": "pendiente", "fecha": "2025-05-17T00:00:00.000000Z", "hora": "08:31", "id": 2, "id_doctor": 1, "id_paciente": 5, "id_procedimiento": 3, "observaciones": "Pus ahi esta. vea nomas", "paciente": [Object], "procedimiento": [Object], "updated_at": "2025-05-06T09:36:47.000000Z"}], "message": "Listado de citas recuperado exitosamente", "success": true}');
+      
       if (Array.isArray(response)) {
         // Si la respuesta es directamente un array
         setCitas(response);
         setFilteredCitas(response);
       } else if (response && response.status === 'success' && Array.isArray(response.data)) {
         // Si la respuesta tiene formato { status: 'success', data: [...] }
+        setCitas(response.data);
+        setFilteredCitas(response.data);
+      } else if (response && response.success && Array.isArray(response.data)) {
+        // Si la respuesta tiene formato { success: true, data: [...] }
         setCitas(response.data);
         setFilteredCitas(response.data);
       } else {

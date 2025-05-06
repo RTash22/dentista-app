@@ -44,18 +44,12 @@ export default function DoctoresScreen() {
     setLoading(true);
     try {
       console.log('Intentando obtener la lista de doctores de la API...');
-      const response = await api.get('/doctores-lista');
-      console.log('Respuesta completa de API doctores-lista:', JSON.stringify(response, null, 2));
+      const response = await api.get('/doctores');
+      console.log('Respuesta completa de API doctores:', JSON.stringify(response, null, 2));
       
-      // Verificación flexible que maneja múltiples formatos de respuesta
-      if (response.data && (response.data.status === "success" || response.data.status === 200 || response.status === 200)) {
-        // Esto maneja ambos casos
-        const doctoresData = response.data.data || response.data;
-        console.log(`Doctores obtenidos exitosamente. Cantidad: ${doctoresData?.length || 0}`);
-        if (doctoresData && doctoresData.length > 0) {
-          console.log('Estructura del primer doctor:', JSON.stringify(doctoresData[0], null, 2));
-        }
-        setDoctors(doctoresData || []);
+      if (response.success && response.data) {
+        console.log(`Doctores obtenidos exitosamente. Cantidad: ${response.data?.length || 0}`);
+        setDoctors(response.data || []);
       } else {
         console.error('Error en la respuesta de la API:', response);
         Alert.alert('Error', 'No se pudieron cargar los doctores');
@@ -90,13 +84,13 @@ export default function DoctoresScreen() {
               const response = await api.delete(`/doctores/${doctorId}`);
               console.log('Respuesta de eliminación:', JSON.stringify(response, null, 2));
               
-              // Verificar el código HTTP
-              if (response && response.status === 200) {
+              // Verificar usando el processApiResponse de tu api.js
+              if (response.success) {
                 Alert.alert('Éxito', 'Doctor eliminado correctamente');
                 fetchDoctors(); // Recargar la lista
               } else {
-                console.error('Error al eliminar doctor, respuesta no válida:', response);
-                Alert.alert('Error', 'No se pudo eliminar el doctor');
+                console.error('Error al eliminar doctor:', response.message);
+                Alert.alert('Error', response.message || 'No se pudo eliminar el doctor');
               }
             } catch (error) {
               console.error('Error eliminando doctor:', error);

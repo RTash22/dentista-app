@@ -40,18 +40,50 @@ apiClient.interceptors.response.use(
   async (error) => {
     // Si el error es 401 (No autorizado), el token podría haber expirado
     if (error.response && error.response.status === 401) {
-      // Aquí podrías implementar lógica para refrescar el token o
-      // redirigir al usuario al login
       console.log('Token expirado o inválido');
-      
-      // Ejemplo: limpiar el almacenamiento y redirigir al login
-      // await AsyncStorage.clear();
-      // navigation.navigate('Login'); // Esto requeriría acceso al objeto navigation
     }
     
     return Promise.reject(error);
   }
 );
+
+/**
+ * Procesa la respuesta de la API para estandarizar el formato de datos
+ * @param {Object} response - La respuesta de la API
+ * @returns {Object} - Datos estandarizados { success: boolean, data: any, message: string }
+ */
+const processApiResponse = (response) => {
+  // Si no hay respuesta, devolvemos un error estándar
+  if (!response) {
+    return { success: false, data: null, message: 'No se recibió respuesta del servidor' };
+  }
+
+  // Si la respuesta es un array directamente (como en /doctores-lista)
+  if (Array.isArray(response)) {
+    return { success: true, data: response, message: 'Datos obtenidos correctamente' };
+  }
+
+  // Si la respuesta tiene formato {status: 'success', data: [...]}
+  if (response.status === 'success' || response.status === 200) {
+    return { 
+      success: true, 
+      data: response.data || response, 
+      message: response.message || 'Operación exitosa'
+    };
+  }
+
+  // Si la respuesta tiene un ID (como al crear un registro)
+  if (response.id) {
+    return { success: true, data: response, message: 'Operación exitosa' };
+  }
+
+  // En cualquier otro caso, consideramos que fue exitoso si hay datos
+  return { 
+    success: !!response, 
+    data: response, 
+    message: 'Datos procesados'
+  };
+};
 
 // Métodos API envueltos para una mejor gestión de errores
 export const api = {
@@ -66,7 +98,7 @@ export const api = {
       
       const response = await apiClient.get(url, config);
       console.log(`[API] Respuesta exitosa de GET ${url}:`, JSON.stringify(response.data, null, 2));
-      return response.data;
+      return processApiResponse(response.data);
     } catch (error) {
       console.error(`[API] Error en GET ${url}:`, {
         message: error.message,
@@ -88,7 +120,7 @@ export const api = {
       };
       
       // Registrar la solicitud para depuración
-      console.log(`Enviando POST a ${url}:`, JSON.stringify(data));
+      console.log(`[API] Enviando POST a ${url}:`, JSON.stringify(data, null, 2));
       
       const response = await apiClient.post(url, data, { 
         ...config, 
@@ -96,31 +128,54 @@ export const api = {
       });
       
       // Registrar la respuesta para depuración
-      console.log(`Respuesta de POST ${url}:`, JSON.stringify(response.data));
+      console.log(`[API] Respuesta de POST ${url}:`, JSON.stringify(response.data, null, 2));
       
-      return response.data;
+      return processApiResponse(response.data);
     } catch (error) {
-      console.error(`Error en POST ${url}:`, error);
+      console.error(`[API] Error en POST ${url}:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: `${API_URL}${url}`
+      });
       throw error;
     }
   },
   
   put: async (url, data = {}, config = {}) => {
     try {
+      console.log(`[API] Enviando PUT a ${url}:`, JSON.stringify(data, null, 2));
+      
       const response = await apiClient.put(url, data, config);
-      return response.data;
+      
+      console.log(`[API] Respuesta de PUT ${url}:`, JSON.stringify(response.data, null, 2));
+      
+      return processApiResponse(response.data);
     } catch (error) {
-      console.error(`Error en PUT ${url}:`, error);
+      console.error(`[API] Error en PUT ${url}:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
       throw error;
     }
   },
   
   delete: async (url, config = {}) => {
     try {
+      console.log(`[API] Enviando DELETE a ${url}`);
+      
       const response = await apiClient.delete(url, config);
-      return response.data;
+      
+      console.log(`[API] Respuesta de DELETE ${url}:`, JSON.stringify(response.data, null, 2));
+      
+      return processApiResponse(response.data);
     } catch (error) {
-      console.error(`Error en DELETE ${url}:`, error);
+      console.error(`[API] Error en DELETE ${url}:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
       throw error;
     }
   }

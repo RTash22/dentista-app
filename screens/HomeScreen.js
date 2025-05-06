@@ -19,7 +19,7 @@ export default function HomeScreen() {
 
   const services = [
     { id: 1, name: 'Agenda', icon: 'calendar' },
-    { id: 4, name: 'Citas', icon: 'medical' },  
+    { id: 6, name: 'CitasDoc', icon: 'clipboard' },
     { id: 3, name: 'Pacientes', icon: 'people' },
     { id: 2, name: 'Historial', icon: 'time' },
     { id: 5, name: 'Procedimientos', icon: 'medkit' }
@@ -42,8 +42,8 @@ export default function HomeScreen() {
     if (serviceName === 'Agenda') {
       navigation.navigate('Calendar');
     }
-    if (serviceName === 'Citas') {
-      navigation.navigate('ConsultasScreen');
+    if (serviceName === 'CitasDoc') {
+      navigation.navigate('CitasDocs');
     }
     if (serviceName === 'Pacientes') {
       navigation.navigate('Patients');

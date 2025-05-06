@@ -22,12 +22,15 @@ export default function PatientDetails() {
   const { patient } = route.params || {};
   const [historialMedico, setHistorialMedico] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(true);
+  const [citas, setCitas] = useState([]);
+  const [loadingCitas, setLoadingCitas] = useState(true);
   const carouselRef = useRef(null);
 
   useEffect(() => {
-    // Si tenemos un paciente, cargar su historial médico
+    // Si tenemos un paciente, cargar su historial médico y citas
     if (patient && patient.id) {
       fetchHistorialMedico(patient.id);
+      fetchCitasPaciente(patient.id);
     }
   }, [patient]);
 
@@ -49,6 +52,29 @@ export default function PatientDetails() {
       setHistorialMedico([]);
     } finally {
       setLoadingHistorial(false);
+    }
+  };
+
+  // Función para cargar citas del paciente
+  const fetchCitasPaciente = async (pacienteId) => {
+    try {
+      setLoadingCitas(true);
+      const response = await api.get(`/historial-citas-paciente/${pacienteId}`);
+      
+      console.log('Respuesta de historial de citas del paciente:', response);
+      
+      if (response.success && response.data) {
+        // Ya no es necesario filtrar por estado completada porque la API devuelve solo las citas completadas
+        setCitas(response.data);
+      } else {
+        console.log('No se encontraron citas completadas para el paciente');
+        setCitas([]);
+      }
+    } catch (error) {
+      console.error('Error al cargar historial de citas del paciente:', error);
+      setCitas([]);
+    } finally {
+      setLoadingCitas(false);
     }
   };
 
@@ -252,35 +278,64 @@ export default function PatientDetails() {
           <View style={styles.appointmentsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Historial de Citas</Text>
-              <TouchableOpacity style={styles.seeAllButton}>
+              <TouchableOpacity 
+                style={styles.seeAllButton}
+                onPress={() => navigation.navigate('CitasDocs')}
+              >
                 <Text style={styles.seeAllText}>Ver todas</Text>
               </TouchableOpacity>
             </View>
             
-            {/* Mensaje de citas no disponibles */}
-            <View style={styles.noAppointmentsContainer}>
-              <Ionicons name="calendar-outline" size={40} color="#cccccc" />
-              <Text style={styles.noAppointmentsText}>
-                No hay citas disponibles
-              </Text>
-              <Text style={styles.noAppointmentsSubText}>
-                El historial de citas estará disponible próximamente
-              </Text>
-            </View>
-
-            {/* Aquí irían las citas cuando estén disponibles */}
-            <View style={styles.appointmentPlaceholder}>
-              <View style={styles.appointmentPlaceholderHeader}>
-                <Ionicons name="calendar" size={24} color="#21588E" />
-                <Text style={styles.appointmentPlaceholderDate}>Próxima cita (ejemplo)</Text>
+            {loadingCitas ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#21588E" />
+                <Text style={styles.loadingText}>Cargando citas...</Text>
               </View>
-              <View style={styles.appointmentPlaceholderBody}>
-                <Text style={styles.appointmentPlaceholderText}>Fecha: 15/06/2025</Text>
-                <Text style={styles.appointmentPlaceholderText}>Hora: 10:30 AM</Text>
-                <Text style={styles.appointmentPlaceholderText}>Doctor: Dr. García</Text>
-                <Text style={styles.appointmentPlaceholderText}>Tratamiento: Limpieza dental</Text>
+            ) : citas.length > 0 ? (
+              <View>
+                {citas.slice(0, 3).map((cita, index) => (
+                  <View key={`cita-${cita.id || index}`} style={styles.appointmentCard}>
+                    <View style={styles.appointmentCardHeader}>
+                      <Ionicons name="calendar" size={24} color="#21588E" />
+                      <Text style={styles.appointmentDate}>
+                        {formatDate(cita.fecha)}
+                      </Text>
+                    </View>
+                    <View style={styles.appointmentCardBody}>
+                      <Text style={styles.appointmentText}>
+                        Hora: {cita.hora ? cita.hora.substring(0, 5) : 'No especificada'}
+                      </Text>
+                      <Text style={styles.appointmentText}>
+                        Doctor: {cita.doctor?.nombre || 'No especificado'}
+                      </Text>
+                      <Text style={styles.appointmentText}>
+                        Tratamiento: {cita.procedimiento?.nombre || cita.descripcion_manual || 'No especificado'}
+                      </Text>
+                      {cita.observaciones && (
+                        <Text style={styles.appointmentText}>
+                          Notas: {cita.observaciones}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+                {citas.length > 3 && (
+                  <Text style={styles.moreAppointmentsText}>
+                    + {citas.length - 3} citas más...
+                  </Text>
+                )}
               </View>
-            </View>
+            ) : (
+              <View style={styles.noAppointmentsContainer}>
+                <Ionicons name="calendar-outline" size={40} color="#cccccc" />
+                <Text style={styles.noAppointmentsText}>
+                  No hay citas completadas
+                </Text>
+                <Text style={styles.noAppointmentsSubText}>
+                  Cuando se completen citas, aparecerán aquí
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -582,5 +637,40 @@ const styles = StyleSheet.create({
   },
   historialListContainer: {
     marginTop: 10,
+  },
+  appointmentCard: {
+    backgroundColor: '#f2f8ff',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#21588E',
+  },
+  appointmentCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  appointmentDate: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 10,
+  },
+  appointmentCardBody: {
+    marginLeft: 34,
+  },
+  appointmentText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 3,
+  },
+  moreAppointmentsText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 10,
+    fontStyle: 'italic',
   },
 });

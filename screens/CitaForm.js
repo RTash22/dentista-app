@@ -22,7 +22,7 @@ import api from '../services/api';
 export default function CitaForm() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { cita, isEditing } = route.params || {};
+  const { cita, isEditing, doctorPreseleccionado } = route.params || {};
 
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
@@ -81,6 +81,13 @@ export default function CitaForm() {
           }
           
           setFormData(citaData);
+        } 
+        // Si viene de CitasDocs, preseleccionar el doctor
+        else if (doctorPreseleccionado) {
+          setFormData(prevState => ({
+            ...prevState,
+            id_doctor: doctorPreseleccionado
+          }));
         }
       } catch (error) {
         console.error('Error cargando datos iniciales:', error);
@@ -91,21 +98,19 @@ export default function CitaForm() {
     };
 
     loadInitialData();
-  }, [isEditing, cita]);
+  }, [isEditing, cita, doctorPreseleccionado]);
 
   // Cargar lista de pacientes
   const loadPacientes = async () => {
     try {
       const response = await api.get('/pacientes');
+      console.log('Respuesta pacientes:', response);
       
-      let pacientesData = [];
-      if (Array.isArray(response)) {
-        pacientesData = response;
-      } else if (response && response.status === 'success' && Array.isArray(response.data)) {
-        pacientesData = response.data;
+      if (response.success && response.data) {
+        setPacientes(response.data || []);
+      } else {
+        console.error('Error cargando pacientes:', response);
       }
-      
-      setPacientes(pacientesData);
     } catch (error) {
       console.error('Error cargando pacientes:', error);
     }
@@ -114,16 +119,13 @@ export default function CitaForm() {
   // Cargar lista de doctores
   const loadDoctores = async () => {
     try {
-      const response = await api.get('/doctores-lista');
+      const response = await api.get('/doctores');
       
-      let doctoresData = [];
-      if (Array.isArray(response)) {
-        doctoresData = response;
-      } else if (response && response.status === 'success' && Array.isArray(response.data)) {
-        doctoresData = response.data;
+      if (response.success && response.data) {
+        setDoctores(response.data || []);
+      } else {
+        console.error('Error cargando doctores:', response);
       }
-      
-      setDoctores(doctoresData);
     } catch (error) {
       console.error('Error cargando doctores:', error);
     }
@@ -133,15 +135,13 @@ export default function CitaForm() {
   const loadProcedimientos = async () => {
     try {
       const response = await api.get('/procedimientos');
+      console.log('Respuesta procedimientos:', response);
       
-      let procedimientosData = [];
-      if (Array.isArray(response)) {
-        procedimientosData = response;
-      } else if (response && response.status === 'success' && Array.isArray(response.data)) {
-        procedimientosData = response.data;
+      if (response.success && response.data) {
+        setProcedimientos(response.data || []);
+      } else {
+        console.error('Error cargando procedimientos:', response);
       }
-      
-      setProcedimientos(procedimientosData);
     } catch (error) {
       console.error('Error cargando procedimientos:', error);
     }
@@ -259,13 +259,14 @@ export default function CitaForm() {
         console.log('Respuesta de creación:', JSON.stringify(response, null, 2));
       }
       
-      if (response && (response.status === 'success' || response.id)) {
+      if (response.success) {
         const message = isEditing ? 'Cita actualizada correctamente' : 'Cita creada correctamente';
-        Alert.alert('Éxito', message, [
+        Alert.alert('Éxito', response.message || message, [
           { text: 'OK', onPress: () => navigation.goBack() }
         ]);
       } else {
-        Alert.alert('Error', 'No se pudo guardar la cita');
+        console.error('Error al guardar cita:', response);
+        Alert.alert('Error', response.message || 'No se pudo guardar la cita');
       }
     } catch (error) {
       console.error('Error al guardar cita:', error);
@@ -349,8 +350,9 @@ export default function CitaForm() {
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={formData.id_doctor}
-              style={styles.picker}
+              style={[styles.picker, doctorPreseleccionado ? styles.disabledPicker : {}]}
               onValueChange={(value) => handleChange('id_doctor', value)}
+              enabled={!doctorPreseleccionado} // Deshabilitar si viene preseleccionado
             >
               <Picker.Item label="Seleccionar doctor" value="" />
               {doctores.map(doctor => (
@@ -362,6 +364,9 @@ export default function CitaForm() {
               ))}
             </Picker>
           </View>
+          {doctorPreseleccionado && (
+            <Text style={styles.preselectedNote}>Doctor asignado automáticamente</Text>
+          )}
         </View>
 
         {/* Selección de Procedimiento */}
@@ -565,6 +570,14 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
   },
+  disabledPicker: {
+    backgroundColor: '#e0e0e0',
+  },
+  preselectedNote: {
+    marginTop: 5,
+    fontSize: 14,
+    color: '#666',
+  },
   dateTimeButton: {
     backgroundColor: 'white',
     borderWidth: 1,
@@ -613,5 +626,5 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: '#666',
-  },
+  }
 });

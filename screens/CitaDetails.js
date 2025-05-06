@@ -39,11 +39,13 @@ export default function CitaDetails() {
       
       console.log('Respuesta detalle cita:', response);
       
-      if (response) {
-        // La respuesta puede venir directamente o dentro de data
-        const citaData = response.data || response;
-        setCita(citaData);
+      // Simulación de respuesta con formato estandarizado para propósitos de depuración
+      console.log('LOG  Respuesta de cita detalle: {"data": {"created_at": "2025-05-06T09:36:47.000000Z", "descripcion_manual": "Pues es una descripcion vea y pus ajam", "doctor": {"id": 1, "nombre": "Dr. Adrian Amaro"}, "estado": "pendiente", "fecha": "2025-05-17T00:00:00.000000Z", "hora": "08:31", "id": 2, "id_doctor": 1, "id_paciente": 5, "id_procedimiento": 3, "observaciones": "Pus ahi esta. vea nomas", "paciente": {"id": 5, "nombre": "Juan", "apellidos": "Perez"}, "procedimiento": {"id": 3, "nombre": "Limpieza dental"}, "updated_at": "2025-05-06T09:36:47.000000Z"}, "message": "Detalle de cita recuperado exitosamente", "success": true}');
+      
+      if (response.success && response.data) {
+        setCita(response.data);
       } else {
+        console.error('Error en la respuesta:', response);
         Alert.alert('Error', 'No se pudo cargar la información de la cita');
         navigation.goBack();
       }
@@ -75,13 +77,15 @@ export default function CitaDetails() {
             try {
               setLoading(true);
               const response = await api.delete(`/citas/${citaId}`);
+              console.log('Respuesta de eliminación:', response);
               
-              if (response && response.status === 'success') {
+              if (response.success) {
                 Alert.alert('Éxito', 'Cita eliminada correctamente', [
                   { text: 'OK', onPress: () => navigation.navigate('ConsultasScreen') }
                 ]);
               } else {
-                Alert.alert('Error', 'No se pudo eliminar la cita');
+                console.error('Error al eliminar cita:', response);
+                Alert.alert('Error', response.message || 'No se pudo eliminar la cita');
                 setLoading(false);
               }
             } catch (error) {
@@ -112,7 +116,9 @@ export default function CitaDetails() {
                 estado: newStatus
               });
               
-              if (response && (response.status === 'success' || response.id)) {
+              console.log('Respuesta actualización estado:', response);
+              
+              if (response.success) {
                 // Si el estado cambia a completada, agregamos al historial médico
                 if (newStatus === 'completada') {
                   try {
@@ -127,13 +133,12 @@ export default function CitaDetails() {
                       notas: cita.observaciones || 'Procedimiento completado'
                     };
                     
-                    // Nota: id_cita no está en la validación del controlador, así que no lo incluimos
                     console.log('Datos para historial médico:', historialData);
                     
                     const historialResponse = await api.post('/historial-medico', historialData);
                     console.log('Respuesta creación historial:', historialResponse);
                     
-                    if (historialResponse && (historialResponse.status === 'success' || historialResponse.id)) {
+                    if (historialResponse.success) {
                       console.log('Historial médico creado exitosamente');
                     } else {
                       console.error('Error al crear historial médico:', historialResponse);
@@ -144,10 +149,11 @@ export default function CitaDetails() {
                   }
                 }
                 
-                Alert.alert('Éxito', 'Estado actualizado correctamente');
+                Alert.alert('Éxito', response.message || 'Estado actualizado correctamente');
                 fetchCitaDetails(); // Recargar los datos
               } else {
-                Alert.alert('Error', 'No se pudo actualizar el estado');
+                console.error('Error al actualizar estado:', response);
+                Alert.alert('Error', response.message || 'No se pudo actualizar el estado');
                 setLoading(false);
               }
             } catch (error) {

@@ -12,11 +12,15 @@ export default function LoginScreen() {
   const navigation = useNavigation();
 
   useEffect(() => {
-    axios.get('http://192.168.0.32:8000/api/doctores-lista')
+    axios.get('http://192.168.0.32:8000/api/doctores')
       .then(response => {
+        // Manejar diferentes formatos de respuesta
         if (response.data.status === 'success') {
           setDoctors(response.data.data);
+        } else if (Array.isArray(response.data)) {
+          setDoctors(response.data);
         } else {
+          console.error('Formato de respuesta inesperado:', response.data);
           Alert.alert('Error', 'No se pudieron cargar los doctores.');
         }
       })
