@@ -49,8 +49,11 @@ export default function HomeScreen() {
       navigation.navigate('Patients');
     }
     if (serviceName === 'Historial') {
-      // Futura implementación
-      Alert.alert('Próximamente', 'Esta funcionalidad estará disponible en una próxima actualización.');
+      // Navegar a la nueva pantalla de historial de citas del doctor
+      navigation.navigate('HistorialCitasDoctor', { 
+        doctorId: userData.doctor?.id || userData.id, 
+        doctorNombre: userData.doctor?.nombre || userData.usuario
+      });
     }
     if (serviceName === 'Procedimientos') {
       navigation.navigate('Procedures');

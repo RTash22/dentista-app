@@ -39,9 +39,9 @@ export default function HistorialMedicoScreen() {
       const response = await api.get(`/historial-por-paciente/${pacienteId}`);
       console.log('Respuesta de historial médico:', response);
       
-      if (response && response.historial) {
-        console.log(`Se encontraron ${response.historial.length} registros en el historial`);
-        setHistorialMedico(response.historial);
+      if (response.success && response.data?.historial) {
+        console.log(`Se encontraron ${response.data.historial.length} registros en el historial`);
+        setHistorialMedico(response.data.historial);
       } else {
         console.log('No se encontró historial médico para este paciente');
         setHistorialMedico([]);
@@ -94,7 +94,7 @@ export default function HistorialMedicoScreen() {
         )}
       </View>
     </View>
-  );
+  );A
 
   return (
     <View style={styles.container}>

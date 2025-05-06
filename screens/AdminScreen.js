@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -48,6 +48,25 @@ export default  function AdminScreen() {
     }
     if (serviceName === 'Pacientes') {
       navigation.navigate('Patients');
+    }
+    if (serviceName === 'Historial') {
+      // Navegar a la pantalla de selección de doctor
+      navigation.navigate('DoctoresScreen', {
+        mode: 'select',
+        onSelect: (doctor) => {
+          // Asegurar que tenemos el ID del doctor
+          if (!doctor || !doctor.id) {
+            Alert.alert('Error', 'No se pudo obtener el ID del doctor');
+            return;
+          }
+          
+          // Navegar directamente a la pantalla de historial con el ID del doctor
+          navigation.navigate('HistorialCitasDoctor', {
+            doctorId: doctor.id,
+            doctorNombre: doctor.nombre || 'Doctor'
+          });
+        }
+      });
     }
     if (serviceName === 'Doctores') {
       navigation.navigate('DoctoresScreen');

@@ -10,7 +10,7 @@ import {
   Alert 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
 
@@ -20,6 +20,10 @@ export default function DoctoresScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const navigation = useNavigation();
+  const route = useRoute();
+  
+  const mode = route.params?.mode;
+  const onSelect = route.params?.onSelect;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -84,10 +88,9 @@ export default function DoctoresScreen() {
               const response = await api.delete(`/doctores/${doctorId}`);
               console.log('Respuesta de eliminación:', JSON.stringify(response, null, 2));
               
-              // Verificar usando el processApiResponse de tu api.js
               if (response.success) {
                 Alert.alert('Éxito', 'Doctor eliminado correctamente');
-                fetchDoctors(); // Recargar la lista
+                fetchDoctors();
               } else {
                 console.error('Error al eliminar doctor:', response.message);
                 Alert.alert('Error', response.message || 'No se pudo eliminar el doctor');
@@ -117,27 +120,30 @@ export default function DoctoresScreen() {
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'activo': return '#4CAF50'; // Verde
-      case 'inactivo': return '#F44336'; // Rojo
-      case 'vacaciones': return '#FF9800'; // Naranja
-      case 'licencia': return '#2196F3'; // Azul
-      default: return '#9E9E9E'; // Gris
+      case 'activo': return '#4CAF50';
+      case 'inactivo': return '#F44336';
+      case 'vacaciones': return '#FF9800';
+      case 'licencia': return '#2196F3';
+      default: return '#9E9E9E';
     }
   };
 
   const renderDoctorItem = ({ item }) => {
-    console.log('Doctor seleccionado:', {
-      id: item.id,
-      tipoDeId: typeof item.id,
-      nombre: item.nombre,
-      todoDatos: item
-    });
-    
     return (
       <TouchableOpacity
         style={styles.doctorCard}
         onPress={() => {
-          console.log('Navegando a DoctorDetails con id:', item.id);
+          if (mode === 'select' && onSelect) {
+            // Al seleccionar un doctor en modo de selección, solo pasamos el ID y nombre necesarios
+            console.log(`Doctor seleccionado: ID=${item.id}, Nombre=${item.nombre}`);
+            onSelect({
+              id: item.id,
+              nombre: item.nombre
+            });
+            return;
+          }
+          
+          // Comportamiento normal para ver detalles
           navigation.navigate('DoctorDetails', { doctorId: item.id });
         }}
       >
@@ -152,7 +158,7 @@ export default function DoctoresScreen() {
             </View>
           </View>
 
-          {isAdmin && (
+          {isAdmin && mode !== 'select' && (
             <View style={styles.actionsContainer}>
               <TouchableOpacity
                 style={[styles.actionButton, styles.editButton]}
@@ -168,6 +174,23 @@ export default function DoctoresScreen() {
               </TouchableOpacity>
             </View>
           )}
+          
+          {mode === 'select' && (
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity
+                style={[styles.actionButton, {backgroundColor: '#4CAF50'}]}
+                onPress={() => {
+                  console.log(`Seleccionando doctor con botón: ID=${item.id}`);
+                  onSelect({
+                    id: item.id,
+                    nombre: item.nombre
+                  });
+                }}
+              >
+                <Ionicons name="checkmark" size={24} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </TouchableOpacity>
     );
@@ -175,6 +198,19 @@ export default function DoctoresScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#21588E" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {mode === 'select' ? 'Seleccionar Doctor' : 'Doctores'}
+        </Text>
+        <View style={styles.headerRight} />
+      </View>
+      
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={24} color="#666" style={styles.searchIcon} />
         <TextInput
@@ -203,7 +239,7 @@ export default function DoctoresScreen() {
         />
       )}
 
-      {isAdmin && (
+      {isAdmin && mode !== 'select' && (
         <TouchableOpacity
           style={styles.fabButton}
           onPress={() => navigation.navigate('DoctorForm')}
@@ -219,6 +255,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  backButton: {
+    padding: 5,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#21588E',
+  },
+  headerRight: {
+    width: 24,
   },
   searchContainer: {
     flexDirection: 'row',

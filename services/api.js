@@ -87,97 +87,79 @@ const processApiResponse = (response) => {
 
 // Métodos API envueltos para una mejor gestión de errores
 export const api = {
-  get: async (url, config = {}) => {
-    console.log(`[API] Iniciando GET a ${url}`);
+  // GET request
+  async get(endpoint) {
     try {
-      console.log(`[API] Configuración de solicitud:`, {
-        url: `${API_URL}${url}`,
-        headers: config.headers || 'Usando headers por defecto',
-        params: config.params || 'Sin parámetros'
-      });
-      
-      const response = await apiClient.get(url, config);
-      console.log(`[API] Respuesta exitosa de GET ${url}:`, JSON.stringify(response.data, null, 2));
+      const response = await apiClient.get(endpoint);
       return processApiResponse(response.data);
     } catch (error) {
-      console.error(`[API] Error en GET ${url}:`, {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: `${API_URL}${url}`
-      });
-      throw error;
-    }
-  },
-  
-  post: async (url, data = {}, config = {}) => {
-    try {
-      // Asegurar que los encabezados estén configurados correctamente
-      const headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...config.headers
+      console.error(`Error en GET ${endpoint}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: error.response?.data?.message || error.message || 'Error al obtener datos' 
       };
-      
-      // Registrar la solicitud para depuración
-      console.log(`[API] Enviando POST a ${url}:`, JSON.stringify(data, null, 2));
-      
-      const response = await apiClient.post(url, data, { 
-        ...config, 
-        headers 
-      });
-      
-      // Registrar la respuesta para depuración
-      console.log(`[API] Respuesta de POST ${url}:`, JSON.stringify(response.data, null, 2));
-      
-      return processApiResponse(response.data);
-    } catch (error) {
-      console.error(`[API] Error en POST ${url}:`, {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: `${API_URL}${url}`
-      });
-      throw error;
     }
   },
-  
-  put: async (url, data = {}, config = {}) => {
+
+  // POST request
+  async post(endpoint, data) {
     try {
-      console.log(`[API] Enviando PUT a ${url}:`, JSON.stringify(data, null, 2));
-      
-      const response = await apiClient.put(url, data, config);
-      
-      console.log(`[API] Respuesta de PUT ${url}:`, JSON.stringify(response.data, null, 2));
-      
+      const response = await apiClient.post(endpoint, data);
       return processApiResponse(response.data);
     } catch (error) {
-      console.error(`[API] Error en PUT ${url}:`, {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-      throw error;
+      console.error(`Error en POST ${endpoint}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: error.response?.data?.message || error.message || 'Error al enviar datos' 
+      };
     }
   },
-  
-  delete: async (url, config = {}) => {
+
+  // PUT request
+  async put(endpoint, data) {
     try {
-      console.log(`[API] Enviando DELETE a ${url}`);
-      
-      const response = await apiClient.delete(url, config);
-      
-      console.log(`[API] Respuesta de DELETE ${url}:`, JSON.stringify(response.data, null, 2));
-      
+      const response = await apiClient.put(endpoint, data);
       return processApiResponse(response.data);
     } catch (error) {
-      console.error(`[API] Error en DELETE ${url}:`, {
-        message: error.message,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-      throw error;
+      console.error(`Error en PUT ${endpoint}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: error.response?.data?.message || error.message || 'Error al actualizar datos' 
+      };
     }
+  },
+
+  // DELETE request
+  async delete(endpoint) {
+    try {
+      const response = await apiClient.delete(endpoint);
+      return processApiResponse(response.data);
+    } catch (error) {
+      console.error(`Error en DELETE ${endpoint}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: error.response?.data?.message || error.message || 'Error al eliminar datos' 
+      };
+    }
+  },
+
+  // Obtener citas por doctor
+  async getCitasByDoctor(doctorId, fecha) {
+    return this.get(`/citas-doctor/${doctorId}${fecha ? `?fecha=${fecha}` : ''}`);
+  },
+
+  // Obtener citas completadas por doctor
+  async getCitasCompletadasDoctor(doctorId) {
+    return this.get(`/citas-completadas-doctor/${doctorId}`);
+  },
+
+  // Obtener citas pendientes
+  async getCitasPendientes() {
+    return this.get('/citas-pendientes');
   }
 };
 

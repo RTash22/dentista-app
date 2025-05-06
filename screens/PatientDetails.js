@@ -22,15 +22,12 @@ export default function PatientDetails() {
   const { patient } = route.params || {};
   const [historialMedico, setHistorialMedico] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(true);
-  const [citas, setCitas] = useState([]);
-  const [loadingCitas, setLoadingCitas] = useState(true);
   const carouselRef = useRef(null);
 
   useEffect(() => {
-    // Si tenemos un paciente, cargar su historial médico y citas
+    // Si tenemos un paciente, cargar su historial médico
     if (patient && patient.id) {
       fetchHistorialMedico(patient.id);
-      fetchCitasPaciente(patient.id);
     }
   }, [patient]);
 
@@ -39,10 +36,12 @@ export default function PatientDetails() {
       setLoadingHistorial(true);
       const response = await api.get(`/historial-por-paciente/${pacienteId}`);
       
-      console.log('Respuesta del historial médico:', response);
+      console.log('Respuesta del historial médico:', response.data);
       
-      if (response && response.historial) {
-        setHistorialMedico(response.historial);
+      // Corrección: Acceder a response.data y luego a historial
+      if (response.data && response.data.historial) {
+        setHistorialMedico(response.data.historial);
+        console.log(`Se encontraron ${response.data.historial.length} registros en el historial médico`);
       } else {
         console.log('No se encontró historial para el paciente');
         setHistorialMedico([]);
@@ -52,29 +51,6 @@ export default function PatientDetails() {
       setHistorialMedico([]);
     } finally {
       setLoadingHistorial(false);
-    }
-  };
-
-  // Función para cargar citas del paciente
-  const fetchCitasPaciente = async (pacienteId) => {
-    try {
-      setLoadingCitas(true);
-      const response = await api.get(`/historial-citas-paciente/${pacienteId}`);
-      
-      console.log('Respuesta de historial de citas del paciente:', response);
-      
-      if (response.success && response.data) {
-        // Ya no es necesario filtrar por estado completada porque la API devuelve solo las citas completadas
-        setCitas(response.data);
-      } else {
-        console.log('No se encontraron citas completadas para el paciente');
-        setCitas([]);
-      }
-    } catch (error) {
-      console.error('Error al cargar historial de citas del paciente:', error);
-      setCitas([]);
-    } finally {
-      setLoadingCitas(false);
     }
   };
 
@@ -271,72 +247,6 @@ export default function PatientDetails() {
               <Text style={styles.noHistorialSubText}>Una vez que se registren procedimientos, aparecerán aquí</Text>
             </View>
           )}
-
-          <View style={styles.divider} />
-
-          {/* Historial de citas */}
-          <View style={styles.appointmentsSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Historial de Citas</Text>
-              <TouchableOpacity 
-                style={styles.seeAllButton}
-                onPress={() => navigation.navigate('CitasDocs')}
-              >
-                <Text style={styles.seeAllText}>Ver todas</Text>
-              </TouchableOpacity>
-            </View>
-            
-            {loadingCitas ? (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#21588E" />
-                <Text style={styles.loadingText}>Cargando citas...</Text>
-              </View>
-            ) : citas.length > 0 ? (
-              <View>
-                {citas.slice(0, 3).map((cita, index) => (
-                  <View key={`cita-${cita.id || index}`} style={styles.appointmentCard}>
-                    <View style={styles.appointmentCardHeader}>
-                      <Ionicons name="calendar" size={24} color="#21588E" />
-                      <Text style={styles.appointmentDate}>
-                        {formatDate(cita.fecha)}
-                      </Text>
-                    </View>
-                    <View style={styles.appointmentCardBody}>
-                      <Text style={styles.appointmentText}>
-                        Hora: {cita.hora ? cita.hora.substring(0, 5) : 'No especificada'}
-                      </Text>
-                      <Text style={styles.appointmentText}>
-                        Doctor: {cita.doctor?.nombre || 'No especificado'}
-                      </Text>
-                      <Text style={styles.appointmentText}>
-                        Tratamiento: {cita.procedimiento?.nombre || cita.descripcion_manual || 'No especificado'}
-                      </Text>
-                      {cita.observaciones && (
-                        <Text style={styles.appointmentText}>
-                          Notas: {cita.observaciones}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                ))}
-                {citas.length > 3 && (
-                  <Text style={styles.moreAppointmentsText}>
-                    + {citas.length - 3} citas más...
-                  </Text>
-                )}
-              </View>
-            ) : (
-              <View style={styles.noAppointmentsContainer}>
-                <Ionicons name="calendar-outline" size={40} color="#cccccc" />
-                <Text style={styles.noAppointmentsText}>
-                  No hay citas completadas
-                </Text>
-                <Text style={styles.noAppointmentsSubText}>
-                  Cuando se completen citas, aparecerán aquí
-                </Text>
-              </View>
-            )}
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -498,61 +408,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  appointmentsSection: {
-    marginTop: 10,
-  },
   seeAllButton: {
     padding: 5,
   },
   seeAllText: {
     color: '#2FA0AD',
     fontWeight: '500',
-  },
-  noAppointmentsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 30,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  noAppointmentsText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#666',
-    marginTop: 10,
-  },
-  noAppointmentsSubText: {
-    fontSize: 14,
-    color: '#888',
-    marginTop: 5,
-  },
-  appointmentPlaceholder: {
-    backgroundColor: '#f2f8ff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#21588E',
-  },
-  appointmentPlaceholderHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  appointmentPlaceholderDate: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 10,
-  },
-  appointmentPlaceholderBody: {
-    marginLeft: 34,
-  },
-  appointmentPlaceholderText: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 3,
   },
   historialCard: {
     backgroundColor: '#f9f9f9',
@@ -637,40 +498,5 @@ const styles = StyleSheet.create({
   },
   historialListContainer: {
     marginTop: 10,
-  },
-  appointmentCard: {
-    backgroundColor: '#f2f8ff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#21588E',
-  },
-  appointmentCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  appointmentDate: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginLeft: 10,
-  },
-  appointmentCardBody: {
-    marginLeft: 34,
-  },
-  appointmentText: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 3,
-  },
-  moreAppointmentsText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 10,
-    marginBottom: 10,
-    fontStyle: 'italic',
-  },
+  }
 });

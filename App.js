@@ -19,6 +19,8 @@ import CitaForm from './screens/CitaForm';
 import CitaDetails from './screens/CitaDetails';
 import CitasDocs from './screens/CitasDocs';
 import HistorialMedicoScreen from './screens/HistorialMedicoScreen';
+import HistorialCitasDoctor from './screens/HistorialCitasDoctor';
+import CalendarScreen from './screens/Calendar';  // Importando el componente Calendar
 
 const Stack = createStackNavigator();
 
@@ -29,7 +31,8 @@ export default function App() {
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Admin" component={AdminScreen} options={{ headerShown: false }} />
-
+        <Stack.Screen name="Calendar" component={CalendarScreen} options={{ headerShown: false }} />
+        
         <Stack.Screen name="DoctoresScreen" component={DoctoresScreen} options={{ headerShown: false }} />
         <Stack.Screen name="DoctorDetails" component={DoctorDetails} options={{ headerShown: false }} />
         <Stack.Screen name="DoctorForm" component={DoctorForm} options={{ headerShown: false }} />
@@ -41,14 +44,14 @@ export default function App() {
         <Stack.Screen name="Procedures" component={Procedures} options={{ headerShown: false }} />
         <Stack.Screen name="ProcedureForm" component={ProcedureForm} options={{ headerShown: false }} />
         
-        {/* Pantallas de gestión de citas */}
         <Stack.Screen name="ConsultasScreen" component={ConsultasScreen} options={{ headerShown: false }} />
         <Stack.Screen name="CitaForm" component={CitaForm} options={{ headerShown: false }} />
         <Stack.Screen name="CitaDetails" component={CitaDetails} options={{ headerShown: false }} />
         <Stack.Screen name="CitasDocs" component={CitasDocs} options={{ headerShown: false }} />
         
-        {/* Nueva pantalla de historial médico detallado */}
         <Stack.Screen name="HistorialMedicoScreen" component={HistorialMedicoScreen} options={{ headerShown: false }} />
+        
+        <Stack.Screen name="HistorialCitasDoctor" component={HistorialCitasDoctor} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
