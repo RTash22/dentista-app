@@ -32,9 +32,9 @@ export default function DoctorForm() {
   const [status, setStatus] = useState(initialDoctor.status || 'activo');
   
   // Campos del formulario del usuario
-  const [usuario, setUsuario] = useState('');
-  const [contrasena, setContrasena] = useState('');
-  const [rol, setRol] = useState('doctor');
+  const [usuario, setUsuario] = useState(initialDoctor.usuario || '');
+  const [password, setPassword] = useState('');
+  const [rol, setRol] = useState(initialDoctor.rol || 'doctor');
   const [userData, setUserData] = useState(null);
 
   useEffect(() => {
@@ -83,19 +83,19 @@ export default function DoctorForm() {
         Alert.alert('Error', 'El nombre de usuario es obligatorio');
         return false;
       }
-      if (!contrasena.trim()) {
-        Alert.alert('Error', 'La contraseña es obligatoria');
+      if (!password.trim()) {
+        Alert.alert('Error', 'El password es obligatorio');
         return false;
       }
-      if (contrasena.length < 8) {
-        Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
+      if (password.length < 8) {
+        Alert.alert('Error', 'El password debe tener al menos 8 caracteres');
         return false;
       }
     }
 
-    // Si estamos editando y hay contraseña, validar longitud
-    if (isEditing && contrasena && contrasena.length < 8) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres');
+    // Si estamos editando y hay password, validar longitud
+    if (isEditing && password && password.length < 8) {
+      Alert.alert('Error', 'El password debe tener al menos 8 caracteres');
       return false;
     }
 
@@ -107,6 +107,7 @@ export default function DoctorForm() {
 
     try {
       setSaveLoading(true);
+      console.log('Guardando datos del doctor...');
 
       const doctorData = {
         nombre,
@@ -119,10 +120,15 @@ export default function DoctorForm() {
       // Si estamos creando un nuevo doctor, incluimos los datos del usuario
       if (!isEditing) {
         doctorData.usuario = usuario;
-        doctorData.contraseña = contrasena;
+        doctorData.password = password;
         doctorData.rol = rol;
-
+        
+        console.log('Enviando datos para crear doctor:', doctorData);
+        
+        // Realizar la solicitud a la API
         const response = await api.post('/doctores', doctorData);
+        
+        console.log('Respuesta recibida:', response);
         
         if (response.status === 'success') {
           Alert.alert('Éxito', 'Doctor creado exitosamente');
@@ -137,14 +143,18 @@ export default function DoctorForm() {
         if (usuario !== userData?.usuario) {
           doctorData.usuario = usuario;
         }
-        if (contrasena) {
-          doctorData.contraseña = contrasena;
+        if (password) {
+          doctorData.password = password;
         }
         if (rol !== userData?.rol) {
           doctorData.rol = rol;
         }
 
+        console.log('Enviando datos para actualizar doctor:', doctorData);
+        
         const response = await api.put(`/doctores/${initialDoctor.id}`, doctorData);
+        
+        console.log('Respuesta recibida:', response);
         
         if (response.status === 'success') {
           Alert.alert('Éxito', 'Doctor actualizado exitosamente');
@@ -155,6 +165,13 @@ export default function DoctorForm() {
       }
     } catch (error) {
       console.error('Error guardando doctor:', error);
+      
+      // Mostrar información detallada del error para depuración
+      console.log('Detalles del error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       
       let errorMessage = 'Hubo un problema al guardar los datos';
       if (error.response?.data?.message) {
@@ -255,14 +272,14 @@ export default function DoctorForm() {
           />
 
           <Text style={styles.inputLabel}>
-            {isEditing ? 'Contraseña (dejar en blanco para mantener actual)' : 'Contraseña'}
+            {isEditing ? 'Password (dejar en blanco para mantener actual)' : 'Password'}
           </Text>
           <TextInput
             style={styles.input}
-            placeholder={isEditing ? "Dejar en blanco para mantener la contraseña actual" : "Contraseña (mínimo 8 caracteres)"}
+            placeholder={isEditing ? "Dejar en blanco para mantener el password actual" : "Password (mínimo 8 caracteres)"}
             secureTextEntry
-            value={contrasena}
-            onChangeText={setContrasena}
+            value={password}
+            onChangeText={setPassword}
           />
 
           <Text style={styles.inputLabel}>Rol</Text>

@@ -43,14 +43,32 @@ export default function DoctoresScreen() {
   const fetchDoctors = async () => {
     setLoading(true);
     try {
+      console.log('Intentando obtener la lista de doctores de la API...');
       const response = await api.get('/doctores-lista');
-      if (response.status === 'success') {
-        setDoctors(response.data || []);
+      console.log('Respuesta completa de API doctores-lista:', JSON.stringify(response, null, 2));
+      
+      // Verificación flexible que maneja múltiples formatos de respuesta
+      if (response.data && (response.data.status === "success" || response.data.status === 200 || response.status === 200)) {
+        // Esto maneja ambos casos
+        const doctoresData = response.data.data || response.data;
+        console.log(`Doctores obtenidos exitosamente. Cantidad: ${doctoresData?.length || 0}`);
+        if (doctoresData && doctoresData.length > 0) {
+          console.log('Estructura del primer doctor:', JSON.stringify(doctoresData[0], null, 2));
+        }
+        setDoctors(doctoresData || []);
       } else {
+        console.error('Error en la respuesta de la API:', response);
         Alert.alert('Error', 'No se pudieron cargar los doctores');
       }
     } catch (error) {
-      console.error('Error obteniendo doctores:', error);
+      console.error('Error detallado al obtener doctores:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data
+        } : 'Sin respuesta del servidor',
+      });
       Alert.alert('Error', 'Hubo un problema al conectar con el servidor');
     } finally {
       setLoading(false);
@@ -70,10 +88,14 @@ export default function DoctoresScreen() {
             try {
               setLoading(true);
               const response = await api.delete(`/doctores/${doctorId}`);
-              if (response.status === 'success') {
+              console.log('Respuesta de eliminación:', JSON.stringify(response, null, 2));
+              
+              // Verificar el código HTTP
+              if (response && response.status === 200) {
                 Alert.alert('Éxito', 'Doctor eliminado correctamente');
                 fetchDoctors(); // Recargar la lista
               } else {
+                console.error('Error al eliminar doctor, respuesta no válida:', response);
                 Alert.alert('Error', 'No se pudo eliminar el doctor');
               }
             } catch (error) {
@@ -109,41 +131,53 @@ export default function DoctoresScreen() {
     }
   };
 
-  const renderDoctorItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.doctorCard}
-      onPress={() => navigation.navigate('DoctorDetails', { doctorId: item.id })}
-    >
-      <View style={styles.doctorCardContent}>
-        <View style={styles.doctorInfo}>
-          <Text style={styles.doctorName}>{item.nombre}</Text>
-          <Text style={styles.doctorSpecialty}>{item.especialidad || 'Sin especialidad'}</Text>
-          <Text style={styles.doctorEmail}>{item.correo}</Text>
-          <View style={styles.statusContainer}>
-            <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
-            <Text style={styles.statusText}>{item.status || 'Desconocido'}</Text>
+  const renderDoctorItem = ({ item }) => {
+    console.log('Doctor seleccionado:', {
+      id: item.id,
+      tipoDeId: typeof item.id,
+      nombre: item.nombre,
+      todoDatos: item
+    });
+    
+    return (
+      <TouchableOpacity
+        style={styles.doctorCard}
+        onPress={() => {
+          console.log('Navegando a DoctorDetails con id:', item.id);
+          navigation.navigate('DoctorDetails', { doctorId: item.id });
+        }}
+      >
+        <View style={styles.doctorCardContent}>
+          <View style={styles.doctorInfo}>
+            <Text style={styles.doctorName}>{item.nombre}</Text>
+            <Text style={styles.doctorSpecialty}>{item.especialidad || 'Sin especialidad'}</Text>
+            <Text style={styles.doctorEmail}>{item.correo}</Text>
+            <View style={styles.statusContainer}>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor(item.status) }]} />
+              <Text style={styles.statusText}>{item.status || 'Desconocido'}</Text>
+            </View>
           </View>
-        </View>
 
-        {isAdmin && (
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.editButton]}
-              onPress={() => navigation.navigate('DoctorForm', { doctor: item })}
-            >
-              <Ionicons name="create-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.deleteButton]}
-              onPress={() => handleDelete(item.id)}
-            >
-              <Ionicons name="trash-outline" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
+          {isAdmin && (
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.editButton]}
+                onPress={() => navigation.navigate('DoctorForm', { doctor: item })}
+              >
+                <Ionicons name="create-outline" size={20} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deleteButton]}
+                onPress={() => handleDelete(item.id)}
+              >
+                <Ionicons name="trash-outline" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>

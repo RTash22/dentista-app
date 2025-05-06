@@ -1,20 +1,96 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image
+  Image,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import api from '../services/api';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 export default function PatientDetails() {
   const navigation = useNavigation();
   const route = useRoute();
   const { patient } = route.params || {};
+  const [historialMedico, setHistorialMedico] = useState([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(true);
+  const carouselRef = useRef(null);
+
+  useEffect(() => {
+    // Si tenemos un paciente, cargar su historial médico
+    if (patient && patient.id) {
+      fetchHistorialMedico(patient.id);
+    }
+  }, [patient]);
+
+  const fetchHistorialMedico = async (pacienteId) => {
+    try {
+      setLoadingHistorial(true);
+      const response = await api.get(`/historial-por-paciente/${pacienteId}`);
+      
+      console.log('Respuesta del historial médico:', response);
+      
+      if (response && response.historial) {
+        setHistorialMedico(response.historial);
+      } else {
+        console.log('No se encontró historial para el paciente');
+        setHistorialMedico([]);
+      }
+    } catch (error) {
+      console.error('Error al cargar el historial médico:', error);
+      setHistorialMedico([]);
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Fecha no disponible';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric' 
+    });
+  };
+
+  const renderHistorialItem = ({ item }) => {
+    return (
+      <View style={styles.historialCard}>
+        <View style={styles.historialCardHeader}>
+          <Ionicons name="calendar" size={22} color="#21588E" />
+          <Text style={styles.historialDate}>{formatDate(item.fecha)}</Text>
+        </View>
+
+        <View style={styles.historialCardBody}>
+          <View style={styles.historialDetailItem}>
+            <Text style={styles.historialDetailLabel}>Procedimiento:</Text>
+            <Text style={styles.historialDetailValue}>{item.procedimiento}</Text>
+          </View>
+          
+          <View style={styles.historialDetailItem}>
+            <Text style={styles.historialDetailLabel}>Doctor:</Text>
+            <Text style={styles.historialDetailValue}>{item.doctor}</Text>
+          </View>
+          
+          {item.notas && (
+            <View style={styles.historialDetailItem}>
+              <Text style={styles.historialDetailLabel}>Notas:</Text>
+              <Text style={styles.historialDetailValue}>{item.notas}</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   // Verificar si tenemos datos del paciente
   if (!patient) {
@@ -105,13 +181,70 @@ export default function PatientDetails() {
 
           <View style={styles.divider} />
 
-          {/* Sección de historial médico (futura implementación) */}
-          <Text style={styles.sectionTitle}>Historial Médico</Text>
-          <View style={styles.infoItem}>
-            <Ionicons name="document-text-outline" size={20} color="#21588E" />
-            <Text style={styles.infoLabel}>Descripción:</Text>
-            <Text style={styles.infoValue}>{patient.descripcion || 'Sin información médica'}</Text>
+          {/* Sección de historial médico */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Historial Médico</Text>
+            <TouchableOpacity 
+              style={styles.seeAllButton}
+              onPress={() => navigation.navigate('HistorialMedicoScreen', { paciente: patient })}
+            >
+              <Text style={styles.seeAllText}>Ver todo</Text>
+            </TouchableOpacity>
           </View>
+          {loadingHistorial ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#21588E" />
+              <Text style={styles.loadingText}>Cargando historial...</Text>
+            </View>
+          ) : historialMedico.length > 0 ? (
+            <View style={styles.historialCarouselContainer}>
+              <Text style={styles.carouselInstructions}>
+                Historial médico del paciente
+              </Text>
+              
+              <View style={styles.historialListContainer}>
+                {historialMedico.map((item, index) => (
+                  <View key={`historial-${index}`} style={styles.historialCard}>
+                    <View style={styles.historialCardHeader}>
+                      <Ionicons name="calendar" size={22} color="#21588E" />
+                      <Text style={styles.historialDate}>{formatDate(item.fecha)}</Text>
+                    </View>
+
+                    <View style={styles.historialCardBody}>
+                      <View style={styles.historialDetailItem}>
+                        <Text style={styles.historialDetailLabel}>Procedimiento:</Text>
+                        <Text style={styles.historialDetailValue}>{item.procedimiento}</Text>
+                      </View>
+                      
+                      <View style={styles.historialDetailItem}>
+                        <Text style={styles.historialDetailLabel}>Doctor:</Text>
+                        <Text style={styles.historialDetailValue}>{item.doctor}</Text>
+                      </View>
+                      
+                      {item.notas && (
+                        <View style={styles.historialDetailItem}>
+                          <Text style={styles.historialDetailLabel}>Notas:</Text>
+                          <Text style={styles.historialDetailValue}>{item.notas}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+              
+              <View style={styles.historialPaginationContainer}>
+                <Text style={styles.historialPaginationText}>
+                  {historialMedico.length} {historialMedico.length === 1 ? 'registro encontrado' : 'registros encontrados'}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.noHistorialContainer}>
+              <Ionicons name="document-text-outline" size={40} color="#cccccc" />
+              <Text style={styles.noHistorialText}>No hay historial médico disponible</Text>
+              <Text style={styles.noHistorialSubText}>Una vez que se registren procedimientos, aparecerán aquí</Text>
+            </View>
+          )}
 
           <View style={styles.divider} />
 
@@ -365,5 +498,89 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#555',
     marginBottom: 3,
+  },
+  historialCard: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#21588E',
+  },
+  historialCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  historialDate: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginLeft: 10,
+  },
+  historialCardBody: {
+    marginLeft: 34,
+  },
+  historialDetailItem: {
+    marginBottom: 5,
+  },
+  historialDetailLabel: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#555',
+  },
+  historialDetailValue: {
+    fontSize: 14,
+    color: '#555',
+  },
+  noHistorialText: {
+    fontSize: 16,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+  },
+  historialCarouselContainer: {
+    marginTop: 10,
+  },
+  carouselInstructions: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  historialPaginationContainer: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  historialPaginationText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  noHistorialContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  noHistorialSubText: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+  historialListContainer: {
+    marginTop: 10,
   },
 });

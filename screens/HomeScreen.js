@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,6 +47,10 @@ export default function HomeScreen() {
     }
     if (serviceName === 'Pacientes') {
       navigation.navigate('Patients');
+    }
+    if (serviceName === 'Historial') {
+      // Futura implementación
+      Alert.alert('Próximamente', 'Esta funcionalidad estará disponible en una próxima actualización.');
     }
     if (serviceName === 'Procedimientos') {
       navigation.navigate('Procedures');

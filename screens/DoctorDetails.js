@@ -42,15 +42,34 @@ export default function DoctorDetails() {
   const fetchDoctorDetails = async () => {
     setLoading(true);
     try {
+      console.log(`Intentando obtener detalles del doctor con ID: ${doctorId}`);
+      console.log('URL de la petición:', `/doctores/${doctorId}`);
+      
       const response = await api.get(`/doctores/${doctorId}`);
-      if (response.status === 'success') {
-        setDoctor(response.data);
+      console.log('Respuesta completa de la API:', JSON.stringify(response, null, 2));
+      
+      // Implementar una verificación más flexible
+      if (response.data && (response.data.status === "success" || response.data.status === 200 || response.status === 200)) {
+        // Extraer datos del doctor, manejando diferentes formatos de respuesta
+        const doctorData = response.data.data || response.data;
+        console.log('Doctor obtenido exitosamente:', JSON.stringify(doctorData, null, 2));
+        setDoctor(doctorData);
       } else {
+        console.error('Error en la respuesta de la API:', response);
         Alert.alert('Error', 'No se pudieron cargar los detalles del doctor');
         navigation.goBack();
       }
     } catch (error) {
-      console.error('Error obteniendo detalles del doctor:', error);
+      console.error('Error detallado al obtener detalles del doctor:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data
+        } : 'Sin respuesta del servidor',
+        doctorId: doctorId,
+        tipoDeId: typeof doctorId,
+      });
       Alert.alert('Error', 'Hubo un problema al cargar los detalles del doctor');
       navigation.goBack();
     } finally {
@@ -75,10 +94,14 @@ export default function DoctorDetails() {
             try {
               setLoading(true);
               const response = await api.delete(`/doctores/${doctorId}`);
-              if (response.status === 'success') {
+              console.log('Respuesta de eliminación:', JSON.stringify(response, null, 2));
+              
+              // Verificar el código HTTP
+              if (response && response.status === 200) {
                 Alert.alert('Éxito', 'Doctor eliminado correctamente');
                 navigation.goBack();
               } else {
+                console.error('Error al eliminar doctor, respuesta no válida:', response);
                 Alert.alert('Error', 'No se pudo eliminar el doctor');
               }
             } catch (error) {

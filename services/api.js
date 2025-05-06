@@ -56,18 +56,48 @@ apiClient.interceptors.response.use(
 // Métodos API envueltos para una mejor gestión de errores
 export const api = {
   get: async (url, config = {}) => {
+    console.log(`[API] Iniciando GET a ${url}`);
     try {
+      console.log(`[API] Configuración de solicitud:`, {
+        url: `${API_URL}${url}`,
+        headers: config.headers || 'Usando headers por defecto',
+        params: config.params || 'Sin parámetros'
+      });
+      
       const response = await apiClient.get(url, config);
+      console.log(`[API] Respuesta exitosa de GET ${url}:`, JSON.stringify(response.data, null, 2));
       return response.data;
     } catch (error) {
-      console.error(`Error en GET ${url}:`, error);
+      console.error(`[API] Error en GET ${url}:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: `${API_URL}${url}`
+      });
       throw error;
     }
   },
   
   post: async (url, data = {}, config = {}) => {
     try {
-      const response = await apiClient.post(url, data, config);
+      // Asegurar que los encabezados estén configurados correctamente
+      const headers = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        ...config.headers
+      };
+      
+      // Registrar la solicitud para depuración
+      console.log(`Enviando POST a ${url}:`, JSON.stringify(data));
+      
+      const response = await apiClient.post(url, data, { 
+        ...config, 
+        headers 
+      });
+      
+      // Registrar la respuesta para depuración
+      console.log(`Respuesta de POST ${url}:`, JSON.stringify(response.data));
+      
       return response.data;
     } catch (error) {
       console.error(`Error en POST ${url}:`, error);
