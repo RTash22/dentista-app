@@ -2,23 +2,29 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // URL base de la API
-const API_URL = 'http://192.168.0.32:8000/api';
+const API_URL = 'http://192.168.1.138:8000/api';
+console.log('API URL configurada:', API_URL);
 
 // Crear una instancia de axios con la URL base
 const apiClient = axios.create({
   baseURL: API_URL,
+  timeout: 10000, // Añadimos timeout para detectar problemas de conexión
 });
 
 // Interceptor para agregar el token de autenticación a todas las solicitudes
 apiClient.interceptors.request.use(
   async (config) => {
     try {
+      console.log(`🚀 Realizando solicitud a: ${config.baseURL}${config.url}`);
       // Obtener el token desde AsyncStorage
       const token = await AsyncStorage.getItem('authToken');
       
       // Si hay un token, añadirlo a los encabezados de la solicitud
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('Token añadido a la solicitud');
+      } else {
+        console.log('No hay token disponible');
       }
       
       return config;
@@ -28,6 +34,7 @@ apiClient.interceptors.request.use(
     }
   },
   (error) => {
+    console.error('Error en interceptor de solicitud:', error);
     return Promise.reject(error);
   }
 );
@@ -35,12 +42,37 @@ apiClient.interceptors.request.use(
 // Interceptor para manejar respuestas y errores
 apiClient.interceptors.response.use(
   (response) => {
+    console.log(`✅ Respuesta exitosa de ${response.config.url}:`, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      dataPreview: typeof response.data === 'object' ? 'Objeto JSON recibido' : typeof response.data
+    });
     return response;
   },
   async (error) => {
+    console.error(`❌ Error en solicitud a ${error.config?.url || 'desconocido'}:`, {
+      message: error.message,
+      code: error.code,
+      response: error.response ? {
+        status: error.response.status,
+        statusText: error.response.statusText,
+        data: error.response.data
+      } : 'Sin respuesta del servidor'
+    });
+    
     // Si el error es 401 (No autorizado), el token podría haber expirado
     if (error.response && error.response.status === 401) {
       console.log('Token expirado o inválido');
+    }
+    
+    // Si es un error de conexión
+    if (error.code === 'ECONNABORTED') {
+      console.error('Timeout de conexión - Verifica si el servidor está disponible');
+    }
+    
+    if (error.code === 'ERR_NETWORK' || !error.response) {
+      console.error('Error de red - Verifica la conexión o si la URL de la API es correcta');
     }
     
     return Promise.reject(error);

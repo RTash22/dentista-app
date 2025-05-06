@@ -12,7 +12,7 @@ export default function LoginScreen() {
   const navigation = useNavigation();
 
   useEffect(() => {
-    axios.get('http://192.168.0.32:8000/api/doctores')
+    axios.get('http://192.168.1.138:8000/api/doctores')
       .then(response => {
         // Manejar diferentes formatos de respuesta
         if (response.data.status === 'success') {
@@ -38,7 +38,7 @@ export default function LoginScreen() {
 
     try {
       // Realiza la solicitud de login con el id_doctor en lugar del email
-      const response = await axios.post('http://192.168.0.32:8000/api/login', {
+      const response = await axios.post('http://192.168.1.138:8000/api/login', {
         id_doctor: selectedDoctor,
         password: password
       });
