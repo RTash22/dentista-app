@@ -231,6 +231,132 @@ export const api = {
   // Obtener citas pendientes
   async getCitasPendientes() {
     return this.get('/citas-pendientes');
+  },
+
+  // ========== SERVICIOS (TRATAMIENTOS) API ==========
+  
+  // Obtener todos los servicios
+  async getAllServicios() {
+    try {
+      return await this.get('/servicios');
+    } catch (error) {
+      console.error('Error al obtener todos los servicios:', error);
+      return { 
+        success: false, 
+        data: null, 
+        message: 'Error al obtener la lista de servicios' 
+      };
+    }
+  },
+
+  // Obtener un servicio específico por ID
+  async getServicio(servicioId) {
+    if (!servicioId) {
+      return { 
+        success: false, 
+        message: 'Se requiere el ID del servicio', 
+        data: null 
+      };
+    }
+    
+    try {
+      return await this.get(`/servicios/${servicioId}`);
+    } catch (error) {
+      console.error(`Error al obtener el servicio ${servicioId}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: 'Error al obtener los detalles del servicio' 
+      };
+    }
+  },
+
+  // Crear un nuevo servicio
+  async createServicio(servicioData) {
+    try {
+      if (!servicioData.nombre || !servicioData.precio) {
+        return {
+          success: false,
+          message: 'El nombre y el precio son obligatorios',
+          data: null
+        };
+      }
+      
+      return await this.post('/servicios', servicioData);
+    } catch (error) {
+      console.error('Error al crear el servicio:', error);
+      return { 
+        success: false, 
+        data: null, 
+        message: 'Error al crear el nuevo servicio' 
+      };
+    }
+  },
+
+  // Actualizar un servicio existente
+  async updateServicio(servicioId, servicioData) {
+    if (!servicioId) {
+      return { 
+        success: false, 
+        message: 'Se requiere el ID del servicio para actualizar', 
+        data: null 
+      };
+    }
+    
+    try {
+      return await this.put(`/servicios/${servicioId}`, servicioData);
+    } catch (error) {
+      console.error(`Error al actualizar el servicio ${servicioId}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: 'Error al actualizar el servicio' 
+      };
+    }
+  },
+
+  // Eliminar un servicio
+  async deleteServicio(servicioId) {
+    if (!servicioId) {
+      return { 
+        success: false, 
+        message: 'Se requiere el ID del servicio para eliminar', 
+        data: null 
+      };
+    }
+    
+    try {
+      return await this.delete(`/servicios/${servicioId}`);
+    } catch (error) {
+      console.error(`Error al eliminar el servicio ${servicioId}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: 'Error al eliminar el servicio' 
+      };
+    }
+  },
+  
+  // Obtener servicios por procedimiento
+  async getServiciosPorProcedimiento(procedimientoId) {
+    if (!procedimientoId) {
+      return { 
+        success: false, 
+        message: 'Se requiere el ID del procedimiento', 
+        data: null 
+      };
+    }
+    
+    try {
+      return await this.get(`/servicios-por-procedimiento/${procedimientoId}`);
+    } catch (error) {
+      console.error(`Error al obtener servicios para el procedimiento ${procedimientoId}:`, error);
+      return { 
+        success: false, 
+        data: null, 
+        message: 'Error al obtener servicios asociados al procedimiento' 
+      };
+    }
   }
 };
 
