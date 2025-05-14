@@ -7,7 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  TextInput
+  TextInput,
+  RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -20,6 +21,7 @@ export default function ConsultasScreen() {
   const [citas, setCitas] = useState([]);
   const [filteredCitas, setFilteredCitas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [doctorId, setDoctorId] = useState(null);
   const [doctorName, setDoctorName] = useState('');
@@ -79,7 +81,6 @@ export default function ConsultasScreen() {
 
     loadDoctorInfo();
   }, []);
-
   // Cargar las citas cuando la pantalla obtiene el foco o cambia el doctorId
   useFocusEffect(
     React.useCallback(() => {
@@ -88,6 +89,19 @@ export default function ConsultasScreen() {
       }
     }, [doctorId])
   );
+  
+  // Función para refrescar las citas (para pull-to-refresh)
+  const onRefresh = React.useCallback(async () => {
+    if (!doctorId) return;
+    setRefreshing(true);
+    try {
+      await fetchCitasByDoctor();
+    } catch (error) {
+      console.error('Error al refrescar citas:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [doctorId]);
   // Función para obtener las citas del doctor desde la API
   const fetchCitasByDoctor = async () => {
     if (!doctorId) {
@@ -376,12 +390,20 @@ export default function ConsultasScreen() {
       </TouchableOpacity>
     );
   };  return (
-    <View style={styles.container}>
-      <LinearGradient
+    <View style={styles.container}>      <LinearGradient
         colors={['#21588E', '#2FA0AD']}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Consultas</Text>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Consultas</Text>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRefresh}
+            disabled={loading || refreshing}
+          >
+            <Ionicons name="refresh" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#FFFFFF" style={styles.searchIcon} />
           <TextInput
@@ -398,14 +420,21 @@ export default function ConsultasScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#21588E" />
           <Text style={styles.loadingText}>Cargando consultas...</Text>
-        </View>
-      ) : filteredCitas.length > 0 ? (
+        </View>      ) : filteredCitas.length > 0 ? (
         <FlatList
           data={filteredCitas}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#21588E', '#2FA0AD']}
+              tintColor="#21588E"
+            />
+          }
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -429,19 +458,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
-  },
-  header: {
+  },  header: {
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 15,
+  },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',

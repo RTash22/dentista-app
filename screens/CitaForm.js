@@ -428,11 +428,11 @@ export default function CitaForm() {
                   !selectedServicio && styles.disabledButton
                 ]}
                 disabled={!selectedServicio}
-                onPress={agregarServicio}
-              >
+                onPress={agregarServicio}              >
                 <Text style={styles.addModalButtonText}>Agregar</Text>
               </TouchableOpacity>
-            </View>          </View>
+            </View>
+          </View>
         </View>
       </Modal>
     );
