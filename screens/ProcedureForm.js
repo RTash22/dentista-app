@@ -58,8 +58,8 @@ export default function ProcedureForm() {
     
     setLoading(true);
     const apiUrl = isEditing 
-      ? `http://192.168.0.32:8000/api/procedimientos/${procedure.id}`
-      : 'http://192.168.0.32:8000/api/procedimientos';
+      ? `https://dentist-app-0fcf42a43c96.herokuapp.com/api/procedimientos/${procedure.id}`
+      : 'https://dentist-app-0fcf42a43c96.herokuapp.com/api/procedimientos';
     
     const method = isEditing ? 'put' : 'post';
     

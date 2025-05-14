@@ -13,6 +13,8 @@ import PatientDetails from './screens/PatientDetails';
 import PatientForm from './screens/PatientForm';
 import Procedures from './screens/Procedures';
 import ProcedureForm from './screens/ProcedureForm';
+import Servicios from './screens/Servicios';
+import ServicioForm from './screens/ServicioForm';
 import AdminScreen from './screens/AdminScreen';
 import ConsultasScreen from './screens/ConsultasScreen';
 import CitaForm from './screens/CitaForm';
@@ -22,6 +24,7 @@ import HistorialMedicoScreen from './screens/HistorialMedicoScreen';
 import HistorialCitasDoctor from './screens/HistorialCitasDoctor';
 import CalendarScreen from './screens/Calendar';  // Importando el componente Calendar
 import AdminCalendar from './screens/AdminCalendar';
+import ConfirmacionCitaScreen from './screens/ConfirmacionCitaScreen';
 
 const Stack = createStackNavigator();
 
@@ -46,10 +49,14 @@ export default function App() {
         <Stack.Screen name="Procedures" component={Procedures} options={{ headerShown: false }} />
         <Stack.Screen name="ProcedureForm" component={ProcedureForm} options={{ headerShown: false }} />
         
+        <Stack.Screen name="Servicios" component={Servicios} options={{ headerShown: false }} />
+        <Stack.Screen name="ServicioForm" component={ServicioForm} options={{ headerShown: false }} />
+        
         <Stack.Screen name="ConsultasScreen" component={ConsultasScreen} options={{ headerShown: false }} />
         <Stack.Screen name="CitaForm" component={CitaForm} options={{ headerShown: false }} />
         <Stack.Screen name="CitaDetails" component={CitaDetails} options={{ headerShown: false }} />
         <Stack.Screen name="CitasDocs" component={CitasDocs} options={{ headerShown: false }} />
+        <Stack.Screen name="ConfirmacionCita" component={ConfirmacionCitaScreen} options={{ headerShown: false }} />
         
         <Stack.Screen name="HistorialMedicoScreen" component={HistorialMedicoScreen} options={{ headerShown: false }} />
         

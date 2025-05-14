@@ -94,7 +94,7 @@ export default function HistorialMedicoScreen() {
         )}
       </View>
     </View>
-  );A
+  );
 
   return (
     <View style={styles.container}>

@@ -41,7 +41,7 @@ export default function Procedures() {
     setLoading(true);
     console.log('Intentando obtener procedimientos de la API...');
     
-    axios.get('http://192.168.1.138:8000/api/procedimientos')
+    axios.get('https://dentist-app-0fcf42a43c96.herokuapp.com/api/procedimientos')
       .then(response => {
         console.log('Respuesta recibida:', JSON.stringify(response.data, null, 2));
         
@@ -96,7 +96,7 @@ export default function Procedures() {
             setLoading(true);
             console.log(`Intentando eliminar procedimiento con ID: ${id}`);
             
-            axios.delete(`http://192.168.1.138:8000/api/procedimientos/${id}`)
+            axios.delete(`https://dentist-app-0fcf42a43c96.herokuapp.com/api/procedimientos/${id}`)
               .then(response => {
                 console.log('Respuesta de eliminación:', JSON.stringify(response, null, 2));
                 

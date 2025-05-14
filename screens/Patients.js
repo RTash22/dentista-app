@@ -41,7 +41,7 @@ export default  function Patients() {
     setLoading(true);
     console.log('Intentando obtener pacientes de la API...');
     
-    axios.get('http://192.168.1.138:8000/api/pacientes')
+    axios.get('https://dentist-app-0fcf42a43c96.herokuapp.com/api/pacientes')
       .then(response => {
         console.log('Respuesta recibida:', JSON.stringify(response.data, null, 2));
         
@@ -133,7 +133,7 @@ export default  function Patients() {
             setLoading(true);
             console.log(`Intentando eliminar paciente con ID: ${id}`);
             
-            axios.delete(`http://192.168.0.32:8000/api/pacientes/${id}`)
+            axios.delete(`https://dentist-app-0fcf42a43c96.herokuapp.com/api/pacientes/${id}`)
               .then(response => {
                 console.log('Respuesta de eliminación (completa):', JSON.stringify(response, null, 2));
                 console.log('Respuesta de eliminación (datos):', JSON.stringify(response.data, null, 2));

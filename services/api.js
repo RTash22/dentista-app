@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // URL base de la API
-const API_URL = 'http://192.168.1.138:8000/api';
+const API_URL = 'https://dentist-app-0fcf42a43c96.herokuapp.com/api'; // URL de producción
 console.log('API URL configurada:', API_URL);
 
 // Crear una instancia de axios con la URL base
@@ -143,10 +143,13 @@ export const api = {
       };
     }
   },
-
+  
   // POST request
   async post(endpoint, data) {
     try {
+      console.log(`Enviando solicitud POST para ${endpoint.split('/').pop()}`);
+      console.log('Datos enviados:', data);
+      
       const response = await apiClient.post(endpoint, data);
       return processApiResponse(response.data);
     } catch (error) {
@@ -154,14 +157,17 @@ export const api = {
       return { 
         success: false, 
         data: null, 
-        message: error.response?.data?.message || error.message || 'Error al enviar datos' 
+        message: error.response?.data?.message || error.message || 'Error al enviar datos'
       };
     }
   },
-
+  
   // PUT request
   async put(endpoint, data) {
     try {
+      console.log(`Enviando solicitud PUT para ${endpoint.split('/').pop()}`);
+      console.log('Datos enviados:', data);
+      
       const response = await apiClient.put(endpoint, data);
       return processApiResponse(response.data);
     } catch (error) {
@@ -169,14 +175,15 @@ export const api = {
       return { 
         success: false, 
         data: null, 
-        message: error.response?.data?.message || error.message || 'Error al actualizar datos' 
+        message: error.response?.data?.message || error.message || 'Error al actualizar datos'
       };
     }
   },
-
+  
   // DELETE request
   async delete(endpoint) {
     try {
+      console.log(`Enviando solicitud DELETE para ${endpoint}`);
       const response = await apiClient.delete(endpoint);
       return processApiResponse(response.data);
     } catch (error) {
@@ -184,41 +191,107 @@ export const api = {
       return { 
         success: false, 
         data: null, 
-        message: error.response?.data?.message || error.message || 'Error al eliminar datos' 
+        message: error.response?.data?.message || error.message || 'Error al eliminar datos'
       };
     }
-  },
-
-  // Obtener citas por doctor
-  async getCitasByDoctor(doctorId, fecha) {
+  },  // Función mejorada para obtener las citas desde la API con manejo robusto de respuestas
+  async getCitasByDoctor(doctorId) {
     if (!doctorId) {
-      console.error('getCitasByDoctor: No se proporcionó el ID del doctor');
-      return { 
-        success: false, 
-        message: 'Se requiere el ID del doctor para obtener las citas', 
-        data: null 
+      console.error('getCitasByDoctor llamado sin ID de doctor');
+      return {
+        success: false,
+        data: [],
+        message: 'ID de doctor requerido'
       };
     }
-
+    
     try {
-      const response = await this.get(`/citas-por-doctor/${doctorId}${fecha ? `?fecha=${fecha}` : ''}`);
+      console.log('Obteniendo citas para el doctor ID:', doctorId);
       
-      // Si el doctor no existe, manejar específicamente ese caso
-      if (response.message === 'Doctor no encontrado') {
-        return {
-          success: false,
-          message: 'El doctor especificado no existe o fue eliminado',
-          data: null
-        };
+      // Usamos la ruta correcta según la documentación de API
+      let endpoint = `/citas-por-doctor/${doctorId}`;
+      console.log(`Usando endpoint de la API: ${endpoint}`);
+      
+      let response;
+      try {
+        response = await apiClient.get(endpoint);
+      } catch (firstError) {
+        // Si falla, intentamos con formato de endpoint alternativo
+        console.log(`Error con endpoint principal, intentando alternativo: ${firstError.message}`);
+        endpoint = `/citas-doctor/${doctorId}`;
+        console.log(`Intentando endpoint alternativo: ${endpoint}`);
+        
+        try {
+          response = await apiClient.get(endpoint);
+        } catch (secondError) {
+          // Si también falla el segundo, probamos con un tercer formato
+          console.log(`Error con segundo endpoint, intentando último formato: ${secondError.message}`);
+          endpoint = `/citas/doctor/${doctorId}`;
+          console.log(`Intentando último formato de endpoint: ${endpoint}`);
+          response = await apiClient.get(endpoint);
+        }
       }
-
-      return response;
-    } catch (error) {
-      console.error(`Error en getCitasByDoctor para doctor ${doctorId}:`, error);
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error al obtener las citas del doctor', 
-        data: null 
+      
+      console.log(`Respuesta de citas (status: ${response.status}):`);
+      console.log(JSON.stringify(response.data, null, 2));
+      
+      // Extraer el array de citas de la respuesta, considerando diferentes estructuras
+      let citasArray = [];
+      
+      if (Array.isArray(response.data)) {
+        // Si la respuesta es directamente un array
+        citasArray = response.data;
+      } else if (response.data && response.data.data) {
+        if (Array.isArray(response.data.data)) {
+          // Si response.data.data es un array (estructura anidada)
+          citasArray = response.data.data;
+        } else if (response.data.data && typeof response.data.data === 'object') {
+          // Si es un objeto pero no un array, convertirlo a array de un elemento
+          citasArray = [response.data.data];
+        }
+      } else if (response.data && typeof response.data === 'object') {
+        // Si la respuesta tiene estructura { status: success, data: [...] }
+        if (response.data.status === 'success' && Array.isArray(response.data.data)) {
+          citasArray = response.data.data;
+        } else if (response.data.status === 'success' && response.data.data === undefined) {
+          // Nuevo caso: si response.data.data es undefined, devolvemos un array vacío
+          console.log('response.data.data es undefined, retornando array vacío');
+          citasArray = [];
+        } else {
+          // Si es un objeto pero no tiene propiedad data o estructura conocida
+          // Verificamos si es un objeto y no es null antes de intentar convertirlo a un array
+          if (response.data !== null && typeof response.data === 'object') {
+            citasArray = [response.data];
+          } else {
+            citasArray = [];
+          }
+        }
+      } else {
+        // Si no podemos identificar la estructura, devolvemos un array vacío
+        console.log('Estructura de respuesta no reconocida, devolviendo array vacío');
+        citasArray = [];
+      }
+      
+      console.log(`Encontradas ${citasArray.length} citas antes de filtrar`);
+      
+      // Ya no filtramos aquí, lo haremos en el componente para poder mostrar todas las citas
+      // o solo las filtradas según sea necesario
+      return {
+        success: true,
+        data: citasArray,
+        message: 'Citas obtenidas correctamente'
+      };    } catch (error) {
+      console.error('Error obteniendo citas:', error);
+      console.error('Mensaje de error:', error.message);
+      // Si es posible, muestra la respuesta de error
+      if (error.response) {
+        console.error('Datos de error:', JSON.stringify(error.response.data));
+      }
+      
+      return {
+        success: false,
+        data: [], // Siempre devolvemos un array vacío para evitar errores de "filter is not a function"
+        message: error.response?.data?.message || error.message || 'Hubo un problema al cargar las citas.'
       };
     }
   },

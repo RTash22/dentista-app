@@ -21,10 +21,9 @@ export default function DoctoresScreen() {
   const [isAdmin, setIsAdmin] = useState(false);
   const navigation = useNavigation();
   const route = useRoute();
-  
-  const mode = route.params?.mode;
+    const mode = route.params?.mode;
   const onSelect = route.params?.onSelect;
-
+  
   useFocusEffect(
     React.useCallback(() => {
       checkUserRole();
@@ -65,8 +64,7 @@ export default function DoctoresScreen() {
         response: error.response ? {
           status: error.response.status,
           data: error.response.data
-        } : 'Sin respuesta del servidor',
-      });
+        } : 'Sin respuesta del servidor',      });
       Alert.alert('Error', 'Hubo un problema al conectar con el servidor');
     } finally {
       setLoading(false);
@@ -127,10 +125,9 @@ export default function DoctoresScreen() {
       default: return '#9E9E9E';
     }
   };
-
   const renderDoctorItem = ({ item }) => {
     return (
-      <TouchableOpacity
+      <TouchableOpacity 
         style={styles.doctorCard}
         onPress={() => {
           if (mode === 'select' && onSelect) {
@@ -144,7 +141,9 @@ export default function DoctoresScreen() {
           }
           
           // Comportamiento normal para ver detalles
-          navigation.navigate('DoctorDetails', { doctorId: item.id });
+          navigation.navigate('DoctorDetails', { 
+            doctorId: item.id
+          });
         }}
       >
         <View style={styles.doctorCardContent}>
@@ -194,9 +193,7 @@ export default function DoctoresScreen() {
         </View>
       </TouchableOpacity>
     );
-  };
-
-  return (
+  };  return (
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity 
@@ -294,8 +291,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-  },
-  searchIcon: {
+  },  searchIcon: {
     marginRight: 10,
   },
   searchInput: {

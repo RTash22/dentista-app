@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  FlatList, 
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  SafeAreaView
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
@@ -10,22 +22,15 @@ export default function LoginScreen() {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [password, setPassword] = useState('');
   const navigation = useNavigation();
-
-  useEffect(() => {
-    axios.get('http://192.168.1.138:8000/api/doctores')
+  useEffect(() => {    // Consulta inicial para verificar si hay conexión con el servidor
+    console.log('Verificando conexión con el servidor...');
+    axios.get('https://dentist-app-0fcf42a43c96.herokuapp.com/api/doctores')
       .then(response => {
-        // Manejar diferentes formatos de respuesta
-        if (response.data.status === 'success') {
-          setDoctors(response.data.data);
-        } else if (Array.isArray(response.data)) {
-          setDoctors(response.data);
-        } else {
-          console.error('Formato de respuesta inesperado:', response.data);
-          Alert.alert('Error', 'No se pudieron cargar los doctores.');
-        }
+        console.log('Conexión exitosa con el servidor');
+        setDoctors(response.data.status === 'success' ? response.data.data : Array.isArray(response.data) ? response.data : []);
       })
       .catch(error => {
-        console.error('Error obteniendo doctores:', error);
+        console.error('Error al conectar con el servidor:', error);
         Alert.alert('Error', 'Hubo un problema al conectar con el servidor.');
       });
   }, []);
@@ -34,11 +39,8 @@ export default function LoginScreen() {
     if (!selectedDoctor || !password) {
       Alert.alert('Error', 'Por favor selecciona un doctor e ingresa la contraseña.');
       return;
-    }
-
-    try {
-      // Realiza la solicitud de login con el id_doctor
-      const response = await axios.post('http://192.168.1.138:8000/api/login', {
+    }    try {      console.log('Iniciando sesión...');
+      const response = await axios.post('https://dentist-app-0fcf42a43c96.herokuapp.com/api/login', {
         id_doctor: selectedDoctor,
         password: password
       });
@@ -63,10 +65,16 @@ export default function LoginScreen() {
             nombre: userData.nombre || userData.usuario,
           }
         };
-        
-        // Guardar el token y datos del usuario
+          // Guardar el token y datos del usuario
         await AsyncStorage.setItem('authToken', token);
         await AsyncStorage.setItem('userData', JSON.stringify(userDataToStore));
+        
+        // Guardar ID y nombre del doctor para uso directo en otras pantallas
+        if (userDataToStore.doctor?.id) {
+          await AsyncStorage.setItem('doctorId', userDataToStore.doctor.id.toString());
+          await AsyncStorage.setItem('doctorName', userDataToStore.doctor.nombre || '');
+          console.log('ID del doctor guardado:', userDataToStore.doctor.id);
+        }
         
         console.log('Datos de usuario guardados:', userDataToStore);
         
@@ -94,42 +102,53 @@ export default function LoginScreen() {
       
       Alert.alert('Error', errorMessage);
     }
-  };
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Iniciar Sesión</Text>
-
-      <FlatList
-        data={doctors}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.doctorItem,
-              selectedDoctor === item.id && styles.selectedDoctorItem
-            ]}
-            onPress={() => setSelectedDoctor(item.id)}
-          >
-            <Text style={styles.doctorName}>{item.nombre}</Text>
-            <Text style={styles.doctorEmail}>{item.correo}</Text>
-          </TouchableOpacity>
-        )}
-        style={styles.doctorList}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
-      </TouchableOpacity>
-    </View>
+  };  return (
+    <SafeAreaView style={{flex: 1}}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{flex: 1}}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      >
+        <View style={styles.container}>
+          <Text style={styles.title}>Iniciar Sesión</Text>
+          
+          <View style={styles.doctorListContainer}>
+            <FlatList
+              data={doctors}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.doctorItem,
+                    selectedDoctor === item.id && styles.selectedDoctorItem
+                  ]}
+                  onPress={() => setSelectedDoctor(item.id)}
+                >
+                  <Text style={styles.doctorName}>{item.nombre}</Text>
+                  <Text style={styles.doctorEmail}>{item.correo}</Text>
+                </TouchableOpacity>
+              )}
+              style={styles.doctorList}
+              showsVerticalScrollIndicator={true}
+            />
+          </View>
+          
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Contraseña"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -138,7 +157,16 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+  },
+  doctorListContainer: {
+    flex: 1,
+    maxHeight: 300,
+    marginBottom: 20,
+  },
+  inputContainer: {
+    width: '100%',
+    marginTop: 10,
   },
   title: {
     fontSize: 24,
@@ -186,8 +214,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
-  },
-  loginButtonText: {
+  },  loginButtonText: {
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,

@@ -22,6 +22,7 @@ export default function CitasDocs() {
   const [searchQuery, setSearchQuery] = useState('');
   const [doctorId, setDoctorId] = useState(null);
   const [doctorData, setDoctorData] = useState(null);
+  const [filteredCitas, setFilteredCitas] = useState([]);
   const navigation = useNavigation();
 
   // Cargar el ID del doctor desde AsyncStorage al iniciar
@@ -110,7 +111,6 @@ export default function CitasDocs() {
       }
     }, [doctorId])
   );
-
   // Función para cargar citas del doctor
   const fetchCitas = async () => {
     const doctorIdentifier = doctorId;
@@ -126,19 +126,43 @@ export default function CitasDocs() {
     
     setLoading(true);
     try {
-      console.log(`Obteniendo citas para el doctor ID: ${doctorIdentifier}`);
-      const response = await api.getCitasByDoctor(doctorIdentifier);
-      console.log('Respuesta de citas:', response);
+      // Usar el endpoint correcto para obtener las citas pendientes del doctor
+      console.log(`Obteniendo citas para el doctor ID: ${doctorId} usando citas-por-doctor`);
+      const response = await api.get(`/citas-por-doctor/${doctorIdentifier}`);
       
-      if (response.success) {
-        setCitas(response.data || []);
-      } else {
-        console.error('Error al obtener citas:', response);
-        Alert.alert('Error', response.message || 'No se pudieron cargar las citas');
+      console.log('Respuesta recibida de citas por doctor');
+      
+      // Identificar dónde está el array de citas de manera segura
+      let citasArray = [];
+      
+      // Estructura típica de respuesta para /citas-por-servicio
+      if (response && response.success && Array.isArray(response.data)) {
+        citasArray = response.data;
+      } 
+      // Por si la API devuelve los datos dentro de data.data
+      else if (response && response.success && response.data && Array.isArray(response.data.data)) {
+        citasArray = response.data.data;
       }
+      // Otras estructuras posibles
+      else if (Array.isArray(response)) {
+        citasArray = response;
+      }
+      
+      // Filtrar las citas de forma segura para mostrar sólo pendientes y por confirmar
+      const citasFiltradas = citasArray.filter(cita => {
+        if (!cita || typeof cita.estado !== 'string') return false;
+        
+        const estado = cita.estado.toLowerCase();
+        return estado === 'pendiente' || estado === 'por confirmar';
+      });
+      
+      console.log(`Citas filtradas (pendientes/por confirmar): ${citasFiltradas.length}`);
+      setCitas(citasFiltradas);
+      setFilteredCitas(citasFiltradas);
     } catch (error) {
-      console.error('Error detallado al obtener citas:', error);
-      Alert.alert('Error', 'Hubo un problema al conectar con el servidor');
+      console.error('Error obteniendo citas del doctor:', error);
+      Alert.alert('Error', 'Hubo un problema al cargar las citas del doctor.');
+      setCitas([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -150,12 +174,14 @@ export default function CitasDocs() {
     setRefreshing(true);
     fetchCitas();
   };
-
-  // Filtrar citas por búsqueda
-  const filteredCitas = useMemo(() => {
-    if (!citas.length) return [];
+  // Filtrar citas por búsqueda cada vez que cambie la búsqueda o las citas
+  useEffect(() => {
+    if (!citas.length) {
+      setFilteredCitas([]);
+      return;
+    }
     
-    return citas.filter(cita => {
+    const filtered = citas.filter(cita => {
       const searchLower = searchQuery.toLowerCase();
       // Buscar por nombre de paciente, fecha o estado
       return (
@@ -167,6 +193,8 @@ export default function CitasDocs() {
           .toLowerCase().includes(searchLower)
       );
     });
+    
+    setFilteredCitas(filtered);
   }, [citas, searchQuery]);
 
   // Función para eliminar cita
@@ -207,6 +235,7 @@ export default function CitasDocs() {
   const getEstadoColor = (estado) => {
     switch (estado?.toLowerCase()) {
       case 'pendiente': return '#FF9800'; // Naranja
+      case 'por confirmar': return '#2196F3'; // Azul
       case 'completada': return '#4CAF50'; // Verde
       case 'cancelada': return '#F44336'; // Rojo
       default: return '#757575'; // Gris
@@ -355,6 +384,10 @@ export default function CitasDocs() {
         </View>
       )}
 
+      <View style={styles.estadosInfo}>
+        <Text style={styles.estadosTitle}>Mostrando citas pendientes y por confirmar</Text>
+      </View>
+
       {/* Buscador */}
       <View style={styles.searchContainer}>
         <Ionicons name="search" size={24} color="#666" style={styles.searchIcon} />
@@ -450,6 +483,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 5,
+  },
+  estadosInfo: {
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+    padding: 10,
+    marginHorizontal: 15,
+    marginTop: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  estadosTitle: {
+    fontSize: 14,
+    color: '#2196F3',
+    fontWeight: '500',
   },
   searchContainer: {
     flexDirection: 'row',

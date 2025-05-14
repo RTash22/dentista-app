@@ -19,7 +19,6 @@ export default function HomeScreen() {
       cargarProximasCitas();
     }, [])
   );
-
   const cargarProximasCitas = async () => {
     try {
       setLoading(true);
@@ -30,6 +29,7 @@ export default function HomeScreen() {
         return;
       }
 
+      // Usamos la ruta correcta para obtener citas por doctor
       const response = await api.get(`/citas-por-doctor/${doctorId}`);
       
       if (response.success) {
@@ -74,7 +74,7 @@ export default function HomeScreen() {
     { id: 6, name: 'CitasDoc', icon: 'clipboard' },
     { id: 3, name: 'Pacientes', icon: 'people' },
     { id: 2, name: 'Historial', icon: 'time' },
-    { id: 5, name: 'Procedimientos', icon: 'medkit' }
+    { id: 7, name: 'Servicios', icon: 'cash' }
   ];
 
   const filteredServices = useMemo(() => {
@@ -107,8 +107,8 @@ export default function HomeScreen() {
         doctorNombre: userData.doctor?.nombre || userData.usuario
       });
     }
-    if (serviceName === 'Procedimientos') {
-      navigation.navigate('Procedures');
+    if (serviceName === 'Servicios') {
+      navigation.navigate('Servicios');
     }
   };
 
@@ -162,7 +162,6 @@ export default function HomeScreen() {
       )}
     </View>
   );
-
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -372,8 +371,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-  },
-  logoutButtonText: {
+  },  logoutButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

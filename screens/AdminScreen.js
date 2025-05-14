@@ -19,7 +19,7 @@ export default function AdminScreen() {
     { id: 3, name: 'Pacientes', icon: 'people' },
     { id: 4, name: 'Historial', icon: 'time' },
     { id: 5, name: 'Doctores', icon: 'medkit' },
-    { id: 6, name: 'Procedimientos', icon: 'flask' }
+    { id: 7, name: 'Servicios', icon: 'cash' }
   ];
 
   const filteredServices = useMemo(() => {
@@ -63,8 +63,8 @@ export default function AdminScreen() {
     if (serviceName === 'Doctores') {
       navigation.navigate('DoctoresScreen');
     }
-    if (serviceName === 'Procedimientos') {
-      navigation.navigate('Procedures');
+    if (serviceName === 'Servicios') {
+      navigation.navigate('Servicios');
     }
   };
 
@@ -77,10 +77,10 @@ export default function AdminScreen() {
       cargarCitasRecientes();
     }, [])
   );
-
   const cargarCitasRecientes = async () => {
     try {
       setLoading(true);
+      // Ruta para administradores: obtener todas las citas
       const response = await api.get('/citas');
 
       if (response.success) {

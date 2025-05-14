@@ -9,12 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  NetInfo
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function PatientForm() {
   const navigation = useNavigation();
@@ -23,6 +25,7 @@ export default function PatientForm() {
   const isEditing = !!patient;
   
   const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
   const [formData, setFormData] = useState({
     nombre: '',
     apellidos: '',
@@ -41,7 +44,24 @@ export default function PatientForm() {
         direccion: patient.direccion || '',
       });
     }
+    
+    // Verificar la conectividad inicial
+    checkConnectivity();
+    
+    // Suscribirse a cambios de conectividad
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected);
+    });
+    
+    // Limpiar suscripción al desmontar
+    return () => unsubscribe();
   }, [isEditing, patient]);
+  
+  // Función para verificar la conectividad
+  const checkConnectivity = async () => {
+    const connectionInfo = await NetInfo.fetch();
+    setIsConnected(connectionInfo.isConnected);
+  };
 
   const handleChange = (field, value) => {
     setFormData({
@@ -72,13 +92,13 @@ export default function PatientForm() {
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) return;
     
     setLoading(true);
     const apiUrl = isEditing 
-      ? `http://192.168.0.32:8000/api/pacientes/${patient.id}`
-      : 'http://192.168.0.32:8000/api/pacientes';
+      ? `https://dentist-app-0fcf42a43c96.herokuapp.com/api/pacientes/${patient.id}`
+      : 'https://dentist-app-0fcf42a43c96.herokuapp.com/api/pacientes';
     
     const method = isEditing ? 'put' : 'post';
     
@@ -101,6 +121,34 @@ export default function PatientForm() {
       correo: formData.email || '',
       fecha_registro: new Date().toISOString().split('T')[0]
     };
+    
+    // Si estamos sin conexión, guardar localmente
+    if (!isConnected) {
+      await saveOfflineData({
+        id: isEditing ? patient.id : `temp_${new Date().getTime()}`,
+        data: dataToSend,
+        method,
+        url: apiUrl,
+        isSync: false,
+        timestamp: new Date().getTime()
+      });
+      
+      setLoading(false);
+      Alert.alert(
+        'Modo sin conexión',
+        'Los datos se han guardado localmente y se sincronizarán cuando haya conexión a internet.',
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            if (typeof refresh === 'function') {
+              refresh();
+            }
+            navigation.goBack();
+          }
+        }]
+      );
+      return;
+    }
     
     console.log(`Enviando solicitud ${method.toUpperCase()} a ${apiUrl}`);
     console.log('Datos enviados:', JSON.stringify(dataToSend, null, 2));
@@ -137,31 +185,133 @@ export default function PatientForm() {
           Alert.alert('Error', 'Formato de respuesta inesperado del servidor');
         }
       })
-      .catch(error => {
-        setLoading(false);
+      .catch(async error => {
+        console.error('Error en la solicitud:', error);
         
-        const errorDetails = {
-          message: error.message,
-          name: error.name,
-          code: error.code,
-          stack: error.stack,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          data: error.response?.data,
-          headers: error.response?.headers,
-          config: {
-            url: error.config?.url,
-            method: error.config?.method,
-            data: JSON.parse(error.config?.data || '{}'),
-            headers: error.config?.headers
-          }
-        };
-        
-        console.error('ERROR DETALLADO AL GUARDAR PACIENTE:', JSON.stringify(errorDetails, null, 2));
-        
-        handleErrorResponse(error);
+        // Si el error es de red, intentamos guardar localmente
+        if (error.message.includes('Network Error') || !isConnected) {
+          await saveOfflineData({
+            id: isEditing ? patient.id : `temp_${new Date().getTime()}`,
+            data: dataToSend,
+            method,
+            url: apiUrl,
+            isSync: false,
+            timestamp: new Date().getTime()
+          });
+          
+          setLoading(false);
+          Alert.alert(
+            'Sin conexión',
+            'No hay conexión a internet. Los datos se han guardado localmente y se sincronizarán cuando haya conexión.',
+            [{ 
+              text: 'OK', 
+              onPress: () => {
+                if (typeof refresh === 'function') {
+                  refresh();
+                }
+                navigation.goBack();
+              }
+            }]
+          );
+        } else {
+          setLoading(false);
+          handleErrorResponse(error);
+        }
       });
   };
+  
+  // Función para guardar datos offline
+  const saveOfflineData = async (offlineData) => {
+    try {
+      // Obtener datos existentes
+      const existingDataJson = await AsyncStorage.getItem('offlinePacientes');
+      let offlineQueue = existingDataJson ? JSON.parse(existingDataJson) : [];
+      
+      // Si estamos editando, eliminar entradas anteriores con el mismo ID
+      if (isEditing) {
+        offlineQueue = offlineQueue.filter(item => item.id !== offlineData.id);
+      }
+      
+      // Agregar nueva entrada
+      offlineQueue.push(offlineData);
+      
+      // Guardar de vuelta en AsyncStorage
+      await AsyncStorage.setItem('offlinePacientes', JSON.stringify(offlineQueue));
+      console.log('Datos guardados offline correctamente');
+      
+      // También almacenar localmente para acceso rápido
+      const localPacientes = await AsyncStorage.getItem('localPacientes');
+      let pacientes = localPacientes ? JSON.parse(localPacientes) : [];
+      
+      if (isEditing) {
+        // Actualizar paciente existente
+        pacientes = pacientes.map(p => 
+          p.id === offlineData.id ? {...p, ...offlineData.data} : p
+        );
+      } else {
+        // Agregar nuevo paciente
+        pacientes.push({
+          id: offlineData.id,
+          ...offlineData.data
+        });
+      }
+      
+      await AsyncStorage.setItem('localPacientes', JSON.stringify(pacientes));
+      
+    } catch (error) {
+      console.error('Error al guardar datos offline:', error);
+    }
+  };
+  
+  // Función para sincronizar datos cuando hay conexión
+  const syncOfflineData = async () => {
+    if (!isConnected) return;
+    
+    try {
+      const offlineDataJson = await AsyncStorage.getItem('offlinePacientes');
+      if (!offlineDataJson) return;
+      
+      const offlineQueue = JSON.parse(offlineDataJson);
+      if (offlineQueue.length === 0) return;
+      
+      // Procesar cada entrada pendiente
+      for (const item of offlineQueue) {
+        if (item.isSync) continue;
+        
+        try {
+          await axios({
+            method: item.method,
+            url: item.url,
+            data: item.data,
+            headers: item.method === 'put' ? {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-HTTP-Method-Override': 'PUT'
+            } : undefined
+          });
+          
+          // Marcar como sincronizado
+          item.isSync = true;
+        } catch (error) {
+          console.error('Error al sincronizar elemento:', error);
+        }
+      }
+      
+      // Guardar el estado actualizado
+      const updatedQueue = offlineQueue.filter(item => !item.isSync);
+      await AsyncStorage.setItem('offlinePacientes', JSON.stringify(updatedQueue));
+      
+    } catch (error) {
+      console.error('Error en sincronización:', error);
+    }
+  };
+  
+  // Intentar sincronizar cuando hay conexión
+  useEffect(() => {
+    if (isConnected) {
+      syncOfflineData();
+    }
+  }, [isConnected]);
   
   const handleSuccessResponse = () => {
     console.log(isEditing ? 'Paciente actualizado correctamente' : 'Paciente creado correctamente');
@@ -248,6 +398,13 @@ export default function PatientForm() {
           <View style={{ width: 40 }}></View>
         </View>
       </LinearGradient>
+
+      {!isConnected && (
+        <View style={styles.offlineNotice}>
+          <Ionicons name="cloud-offline" size={20} color="#fff" />
+          <Text style={styles.offlineText}>Modo sin conexión</Text>
+        </View>
+      )}
 
       <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
         <View style={styles.inputGroup}>
@@ -391,5 +548,17 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  offlineNotice: {
+    backgroundColor: '#E74C3C',
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  offlineText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
