@@ -152,15 +152,30 @@ export default  function Patients() {
               // Primero verificamos si el paciente tiene citas asociadas
               const citasResponse = await axios.get('https://dentist-app-0fcf42a43c96.herokuapp.com/api/citas', {
                 params: {
-                  id_paciente: id
+                  paciente_id: id
                 }
               });
               
-              if (citasResponse.data && Array.isArray(citasResponse.data) && citasResponse.data.length > 0) {
+              // Verificamos si hay citas asociadas a este paciente específico
+              const citasDelPaciente = citasResponse.data.filter(cita => cita.paciente_id === id);
+              
+              if (citasDelPaciente && citasDelPaciente.length > 0) {
+                const citasPendientes = citasDelPaciente.filter(cita => cita.estado !== 'cancelada' && cita.estado !== 'completada').length;
+                const citasCompletadas = citasDelPaciente.filter(cita => cita.estado === 'completada').length;
+                
+                let mensaje = 'Este paciente no puede ser eliminado porque tiene citas asociadas:\n\n';
+                if (citasPendientes > 0) {
+                  mensaje += `• ${citasPendientes} cita(s) pendiente(s)\n`;
+                }
+                if (citasCompletadas > 0) {
+                  mensaje += `• ${citasCompletadas} cita(s) completada(s)\n`;
+                }
+                mensaje += '\nPor favor, asegúrese de que el paciente no tenga citas antes de eliminarlo.';
+                
                 Alert.alert(
                   'No se puede eliminar',
-                  'Este paciente tiene citas asociadas. Por favor, elimine o cancele todas las citas antes de eliminar al paciente.',
-                  [{ text: 'OK' }]
+                  mensaje,
+                  [{ text: 'Entendido' }]
                 );
                 setLoading(false);
                 return;
