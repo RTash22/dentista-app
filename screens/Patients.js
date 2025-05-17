@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default  function Patients() {
   const navigation = useNavigation();
@@ -20,12 +21,26 @@ export default  function Patients() {
   const [filteredPatients, setFilteredPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
+      checkUserRole();
       fetchPatients();
     }, [])
   );
+
+  const checkUserRole = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const user = JSON.parse(userData);
+        setIsAdmin(user.rol === 'admin' || user.is_admin === 1);
+      }
+    } catch (error) {
+      console.error('Error verificando rol de usuario:', error);
+    }
+  };
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -258,12 +273,14 @@ export default  function Patients() {
         >
           <Ionicons name="create-outline" size={22} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.deleteButton]} 
-          onPress={() => deletePatient(item.id)}
-        >
-          <Ionicons name="trash-outline" size={22} color="#fff" />
-        </TouchableOpacity>
+        {isAdmin && (
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.deleteButton]} 
+            onPress={() => deletePatient(item.id)}
+          >
+            <Ionicons name="trash-outline" size={22} color="#fff" />
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
