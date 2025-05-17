@@ -130,7 +130,7 @@ export default function CitaDetails() {
                       fecha: cita.fecha,
                       procedimiento: cita.procedimiento ? cita.procedimiento.nombre : (cita.descripcion_manual || 'Procedimiento no especificado'),
                       doctor: cita.doctor ? cita.doctor.nombre : 'No especificado',
-                      notas: cita.observaciones || 'Procedimiento completado'
+                      notas: 'Cita completada satisfactoriamente'
                     };
                     
                     console.log('Datos para historial médico:', historialData);
