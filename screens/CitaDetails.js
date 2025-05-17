@@ -119,36 +119,6 @@ export default function CitaDetails() {
               console.log('Respuesta actualización estado:', response);
               
               if (response.success) {
-                // Si el estado cambia a completada o cancelada, agregamos al historial médico
-                if (newStatus === 'completada' || newStatus === 'cancelada') {
-                  try {
-                    console.log('Agregando cita al historial médico del paciente...');
-                    
-                    // Preparar los datos para el historial médico
-                    const historialData = {
-                      id_paciente: cita.paciente?.id || cita.id_paciente,
-                      fecha: cita.fecha,
-                      procedimiento: cita.procedimiento ? cita.procedimiento.nombre : (cita.descripcion_manual || 'Procedimiento no especificado'),
-                      doctor: cita.doctor ? cita.doctor.nombre : 'No especificado',
-                      notas: newStatus === 'completada' ? 'Cita completada satisfactoriamente' : 'Cita cancelada'
-                    };
-                    
-                    console.log('Datos para historial médico:', historialData);
-                    
-                    const historialResponse = await api.post('/historial-medico', historialData);
-                    console.log('Respuesta creación historial:', historialResponse);
-                    
-                    if (historialResponse.success) {
-                      console.log('Historial médico creado exitosamente');
-                    } else {
-                      console.error('Error al crear historial médico:', historialResponse);
-                    }
-                  } catch (historialError) {
-                    console.error('Error al crear entrada en historial médico:', historialError);
-                    // No mostramos alerta al usuario para no confundirlo, solo registramos el error
-                  }
-                }
-                
                 Alert.alert('Éxito', response.message || 'Estado actualizado correctamente');
                 fetchCitaDetails(); // Recargar los datos
               } else {
