@@ -131,88 +131,81 @@ export default  function Patients() {
         { 
           text: 'Eliminar', 
           style: 'destructive',
-          onPress: () => {
-            setLoading(true);
-            console.log(`Intentando eliminar paciente con ID: ${id}`);
-            
-            axios.delete(`https://dentist-app-0fcf42a43c96.herokuapp.com/api/pacientes/${id}`)
-              .then(response => {
-                console.log('Respuesta de eliminación (completa):', JSON.stringify(response, null, 2));
-                console.log('Respuesta de eliminación (datos):', JSON.stringify(response.data, null, 2));
-                
-                // Manejar diferentes formatos de respuesta
-                if (response.data && response.data.status === 'success') {
-                  setPatients(patients.filter(patient => patient.id !== id));
-                  console.log(`Paciente con ID ${id} eliminado correctamente`);
-                  Alert.alert('Éxito', 'Paciente eliminado correctamente.');
-                } else if (response.status >= 200 && response.status < 300) {
-                  // La eliminación fue exitosa aunque no tenga el formato esperado
-                  setPatients(patients.filter(patient => patient.id !== id));
-                  console.log(`Paciente con ID ${id} eliminado correctamente (respuesta HTTP: ${response.status})`);
-                  Alert.alert('Éxito', 'Paciente eliminado correctamente.');
-                } else {
-                  console.error('Error al eliminar (formato inesperado):', response.data);
-                  Alert.alert('Error', `No se pudo eliminar el paciente. Respuesta: ${JSON.stringify(response.data)}`);
+          onPress: async () => {
+            try {
+              setLoading(true);
+              // Primero verificamos si el paciente tiene citas asociadas
+              const citasResponse = await axios.get('https://dentist-app-0fcf42a43c96.herokuapp.com/api/citas', {
+                params: {
+                  id_paciente: id
                 }
-                setLoading(false);
-              })
-              .catch(error => {
-                const errorDetails = {
-                  message: error.message,
-                  status: error.response?.status,
-                  statusText: error.response?.statusText,
-                  data: error.response?.data,
-                  headers: error.response?.headers,
-                  config: {
-                    url: error.config?.url,
-                    method: error.config?.method,
-                    headers: error.config?.headers
-                  }
-                };
-                console.error(`Error detallado al eliminar paciente ${id}:`, JSON.stringify(errorDetails, null, 2));
-                
-                let errorMessage = 'Hubo un problema al conectar con el servidor.';
-                
-                if (error.response) {
-                  // El servidor respondió con un código de estado fuera del rango 2xx
-                  errorMessage = `Error al eliminar: ${error.response.status}`;
-                  
-                  // Casos específicos de error
-                  if (error.response.status === 404) {
-                    errorMessage = 'El paciente no existe o ya ha sido eliminado.';
-                  } else if (error.response.status === 403) {
-                    errorMessage = 'No tienes permisos para eliminar este paciente.';
-                  } else if (error.response.status === 401) {
-                    errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
-                    Alert.alert('Sesión expirada', errorMessage, [
-                      { text: 'OK', onPress: () => navigation.replace('Login') }
-                    ]);
-                    return;
-                  } else if (error.response.status === 422) {
-                    errorMessage = 'Error de validación. No se puede eliminar este paciente.';
-                  } else if (error.response.status === 500) {
-                    errorMessage = 'Error interno del servidor. Inténtalo más tarde.';
-                  }
-                  
-                  // Agregar detalles específicos del error si están disponibles
-                  if (error.response.data && typeof error.response.data === 'object') {
-                    if (error.response.data.message) {
-                      errorMessage += ` Detalle: ${error.response.data.message}`;
-                    } else if (error.response.data.error) {
-                      errorMessage += ` Detalle: ${error.response.data.error}`;
-                    }
-                  }
-                } else if (error.request) {
-                  // La solicitud fue realizada pero no se recibió respuesta
-                  errorMessage = 'No se recibió respuesta del servidor. Verifica tu conexión a internet.';
-                } else {
-                  // Algo ocurrió durante la configuración de la solicitud
-                  errorMessage += ` Detalle: ${error.message}`;
-                }
-                
-                Alert.alert('Error', errorMessage);
-                setLoading(false);
               });
+              
+              if (citasResponse.data && Array.isArray(citasResponse.data) && citasResponse.data.length > 0) {
+                Alert.alert(
+                  'No se puede eliminar',
+                  'Este paciente tiene citas asociadas. Por favor, elimine o cancele todas las citas antes de eliminar al paciente.',
+                  [{ text: 'OK' }]
+                );
+                setLoading(false);
+                return;
+              }
+
+              // Si no tiene citas, procedemos con la eliminación
+              const response = await axios.delete(`https://dentist-app-0fcf42a43c96.herokuapp.com/api/pacientes/${id}`);
+              
+              console.log('Respuesta de eliminación:', response);
+              
+              if (response.data && response.data.status === 'success') {
+                setPatients(patients.filter(patient => patient.id !== id));
+                console.log(`Paciente con ID ${id} eliminado correctamente`);
+                Alert.alert('Éxito', 'Paciente eliminado correctamente.');
+              } else if (response.status >= 200 && response.status < 300) {
+                setPatients(patients.filter(patient => patient.id !== id));
+                console.log(`Paciente con ID ${id} eliminado correctamente (respuesta HTTP: ${response.status})`);
+                Alert.alert('Éxito', 'Paciente eliminado correctamente.');
+              } else {
+                console.error('Error al eliminar (formato inesperado):', response.data);
+                Alert.alert('Error', `No se pudo eliminar el paciente. Respuesta: ${JSON.stringify(response.data)}`);
+              }
+              setLoading(false);
+            } catch (error) {
+              console.error('Error al eliminar paciente:', error);
+              let errorMessage = 'Hubo un problema al conectar con el servidor.';
+              
+              if (error.response) {
+                if (error.response.status === 404) {
+                  errorMessage = 'El paciente no existe o ya ha sido eliminado.';
+                } else if (error.response.status === 403) {
+                  errorMessage = 'No tienes permisos para eliminar este paciente.';
+                } else if (error.response.status === 401) {
+                  errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+                  Alert.alert('Sesión expirada', errorMessage, [
+                    { text: 'OK', onPress: () => navigation.replace('Login') }
+                  ]);
+                  return;
+                } else if (error.response.status === 422) {
+                  errorMessage = 'Error de validación. No se puede eliminar este paciente.';
+                } else if (error.response.status === 500) {
+                  errorMessage = 'Error interno del servidor. Inténtalo más tarde.';
+                }
+                
+                if (error.response.data && typeof error.response.data === 'object') {
+                  if (error.response.data.message) {
+                    errorMessage += ` Detalle: ${error.response.data.message}`;
+                  } else if (error.response.data.error) {
+                    errorMessage += ` Detalle: ${error.response.data.error}`;
+                  }
+                }
+              } else if (error.request) {
+                errorMessage = 'No se recibió respuesta del servidor. Verifica tu conexión a internet.';
+              } else {
+                errorMessage += ` Detalle: ${error.message}`;
+              }
+              
+              Alert.alert('Error', errorMessage);
+              setLoading(false);
+            }
           }
         }
       ]
