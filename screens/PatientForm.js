@@ -9,14 +9,14 @@ import {
   Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
-  Platform,
-  NetInfo
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 export default function PatientForm() {
   const navigation = useNavigation();
@@ -34,28 +34,30 @@ export default function PatientForm() {
     direccion: '',
   });
 
-  useEffect(() => {
-    if (isEditing && patient) {
-      setFormData({
-        nombre: patient.nombre || '',
-        apellidos: patient.apellidos || '',
-        telefono: patient.telefono || '',
-        email: patient.email || patient.correo || '',
-        direccion: patient.direccion || '',
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isEditing && patient) {
+        setFormData({
+          nombre: patient.nombre || '',
+          apellidos: patient.apellidos || '',
+          telefono: patient.telefono || '',
+          email: patient.email || patient.correo || '',
+          direccion: patient.direccion || '',
+        });
+      }
+      
+      // Verificar la conectividad inicial
+      checkConnectivity();
+      
+      // Suscribirse a cambios de conectividad
+      const unsubscribe = NetInfo.addEventListener(state => {
+        setIsConnected(state.isConnected);
       });
-    }
-    
-    // Verificar la conectividad inicial
-    checkConnectivity();
-    
-    // Suscribirse a cambios de conectividad
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected);
-    });
-    
-    // Limpiar suscripción al desmontar
-    return () => unsubscribe();
-  }, [isEditing, patient]);
+      
+      // Limpiar suscripción al desmontar
+      return () => unsubscribe();
+    }, [isEditing, patient])
+  );
   
   // Función para verificar la conectividad
   const checkConnectivity = async () => {

@@ -10,7 +10,7 @@ import {
   TextInput
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -21,9 +21,11 @@ export default  function Patients() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchPatients();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchPatients();
+    }, [])
+  );
 
   useEffect(() => {
     if (searchQuery.trim() === '') {
@@ -218,11 +220,11 @@ export default  function Patients() {
   };
 
   const handleAddPatient = () => {
-    navigation.navigate('PatientForm', { refresh: fetchPatients });
+    navigation.navigate('PatientForm');
   };
 
   const handleEditPatient = (patient) => {
-    navigation.navigate('PatientForm', { patient, refresh: fetchPatients });
+    navigation.navigate('PatientForm', { patient });
   };
 
   const handleViewHistory = (patientId) => {

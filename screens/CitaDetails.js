@@ -154,8 +154,8 @@ export default function CitaDetails() {
               } else {
                 console.error('Error al actualizar estado:', response);
                 Alert.alert('Error', response.message || 'No se pudo actualizar el estado');
-                setLoading(false);
               }
+              setLoading(false);
             } catch (error) {
               console.error('Error al actualizar estado:', error);
               Alert.alert('Error', 'Ocurrió un problema al actualizar el estado');

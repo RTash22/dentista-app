@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../services/api';
 
@@ -19,17 +19,20 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function PatientDetails() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { patient } = route.params || {};
+  const { patient: initialPatient } = route.params || {};
+  const [patient, setPatient] = useState(initialPatient);
   const [historialMedico, setHistorialMedico] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(true);
   const carouselRef = useRef(null);
 
-  useEffect(() => {
-    // Si tenemos un paciente, cargar su historial médico
-    if (patient && patient.id) {
-      fetchHistorialMedico(patient.id);
-    }
-  }, [patient]);
+  // Usar useFocusEffect para recargar los datos cuando la pantalla recibe el foco
+  useFocusEffect(
+    React.useCallback(() => {
+      if (patient?.id) {
+        fetchHistorialMedico(patient.id);
+      }
+    }, [patient?.id])
+  );
 
   const fetchHistorialMedico = async (pacienteId) => {
     try {
@@ -126,10 +129,7 @@ export default function PatientDetails() {
           <Text style={styles.headerTitle}>Detalles del Paciente</Text>
           <TouchableOpacity 
             style={styles.editButton}
-            onPress={() => navigation.navigate('PatientForm', { 
-              patient, 
-              refresh: () => navigation.goBack() 
-            })}
+            onPress={() => navigation.navigate('PatientForm', { patient })}
           >
             <Ionicons name="create-outline" size={24} color="#fff" />
           </TouchableOpacity>
