@@ -119,8 +119,8 @@ export default function CitaDetails() {
               console.log('Respuesta actualización estado:', response);
               
               if (response.success) {
-                // Si el estado cambia a completada, agregamos al historial médico
-                if (newStatus === 'completada') {
+                // Si el estado cambia a completada o cancelada, agregamos al historial médico
+                if (newStatus === 'completada' || newStatus === 'cancelada') {
                   try {
                     console.log('Agregando cita al historial médico del paciente...');
                     
@@ -130,7 +130,7 @@ export default function CitaDetails() {
                       fecha: cita.fecha,
                       procedimiento: cita.procedimiento ? cita.procedimiento.nombre : (cita.descripcion_manual || 'Procedimiento no especificado'),
                       doctor: cita.doctor ? cita.doctor.nombre : 'No especificado',
-                      notas: 'Cita completada satisfactoriamente'
+                      notas: newStatus === 'completada' ? 'Cita completada satisfactoriamente' : 'Cita cancelada'
                     };
                     
                     console.log('Datos para historial médico:', historialData);
