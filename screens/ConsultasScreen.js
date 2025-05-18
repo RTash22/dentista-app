@@ -388,9 +388,11 @@ export default function ConsultasScreen() {
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
-    );
-  };  return (
-    <View style={styles.container}>      <LinearGradient
+    );  };
+  
+  return (
+    <View style={styles.container}>
+      <LinearGradient
         colors={['#21588E', '#2FA0AD']}
         style={styles.header}
       >
@@ -420,7 +422,8 @@ export default function ConsultasScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#21588E" />
           <Text style={styles.loadingText}>Cargando consultas...</Text>
-        </View>      ) : filteredCitas.length > 0 ? (
+        </View>
+      ) : filteredCitas.length > 0 ? (
         <FlatList
           data={filteredCitas}
           renderItem={renderItem}
