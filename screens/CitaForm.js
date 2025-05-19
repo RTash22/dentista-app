@@ -52,7 +52,6 @@ export default function CitaForm() {
   // Estados para selección de fecha y hora
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-
   // Cargar datos iniciales
   useEffect(() => {
     const loadInitialData = async () => {
@@ -69,9 +68,10 @@ export default function CitaForm() {
         if (isEditing && cita) {
           let citaData = { ...cita };
           
-          // Convertir las fechas a objetos Date
+          // Convertir las fechas a objetos Date y ajustar zona horaria
           if (citaData.fecha) {
-            citaData.fecha = new Date(citaData.fecha);
+            const [year, month, day] = citaData.fecha.split('T')[0].split('-');
+            citaData.fecha = new Date(year, month - 1, day, 12, 0, 0);
           }
           
           if (citaData.hora) {
@@ -187,12 +187,16 @@ export default function CitaForm() {
     if (selectedTime) {
       handleChange('hora', selectedTime);
     }
-  };
-
-  // Formatear fecha para mostrar
+  };  // Formatear fecha para mostrar
   const formatDate = (date) => {
     if (!date) return '';
-    return date.toLocaleDateString('es-ES');
+    const d = new Date(date);
+    // Mostrar la fecha tal cual se seleccionó, sin ajustes
+    return d.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   // Formatear hora para mostrar
@@ -436,14 +440,19 @@ export default function CitaForm() {
         </View>
       </Modal>
     );
-  };
-
-  // Enviar formulario
+  };  // Enviar formulario
   const handleSubmit = async () => {
     if (!validateForm()) return;
-
-    // Formatear fecha para la validación
-    const fechaFormateada = formData.fecha.toISOString().split('T')[0];
+    
+    // Crear una nueva fecha y añadirle un día
+    const fecha = new Date(formData.fecha);
+    fecha.setDate(fecha.getDate() + 1); // Añadir un día
+    
+    // Formatear la fecha en YYYY-MM-DD
+    const year = fecha.getFullYear();
+    const month = String(fecha.getMonth() + 1).padStart(2, '0');
+    const day = String(fecha.getDate()).padStart(2, '0');
+    const fechaFormateada = `${year}-${month}-${day}`;
 
     // Verificar disponibilidad antes de continuar
     const horarioDisponible = await verificarDisponibilidad(
