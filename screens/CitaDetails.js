@@ -471,31 +471,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
-  },
-  actionsTitle: {
+  },  actionsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 10,
     textAlign: 'center',
-  },  statusButtons: {
+  },
+  statusButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-  },
-  statusButton: {
-    paddingHorizontal: 10,
+  },  statusButton: {
+    paddingHorizontal: 8,
     paddingVertical: 10,
     borderRadius: 10,
-    marginHorizontal: 3,
+    marginHorizontal: 2,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    minWidth: 0,
   },
   statusButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 12,
     textAlign: 'center',
   },
   deleteButton: {
