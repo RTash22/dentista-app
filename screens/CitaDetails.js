@@ -478,21 +478,25 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
     textAlign: 'center',
-  },
-  statusButtons: {
+  },  statusButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    width: '100%',
   },
   statusButton: {
-    paddingHorizontal: 15,
+    paddingHorizontal: 10,
     paddingVertical: 10,
     borderRadius: 10,
-    marginHorizontal: 5,
+    marginHorizontal: 3,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statusButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 13,
+    textAlign: 'center',
   },
   deleteButton: {
     backgroundColor: '#F44336',
